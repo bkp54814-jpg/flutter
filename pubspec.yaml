@@ -1,7 +1,7 @@
 name: mini_arena_flutter
-description: Mini Arena 2D side-scrolling shooter built with Flutter.
+description: Mini Arena 2D shooter packaged in Flutter with the original HTML game engine.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:
@@ -17,3 +18,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/game/mini_arena_full_rebuild.html

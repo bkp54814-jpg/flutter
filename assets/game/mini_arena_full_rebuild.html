@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mini Arena — 2D Shooter</title>
+<style>
+:root{color-scheme:dark;--panel:rgba(10,17,30,.78);--line:rgba(255,255,255,.18)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101a2a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;touch-action:none}
+#game{display:block;width:100%;height:100%;touch-action:none;background:#7cc7e8}
+#hud{position:fixed;inset:0;pointer-events:none}
+.topbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(6px);white-space:nowrap;font-size:12px;font-weight:800;letter-spacing:.5px}
+.badge{padding:5px 8px;border-radius:8px;background:#24364e}.blueScore{background:#1d4ed8}.redScore{background:#b91c1c}.blueScore b,.redScore b{font-size:14px;margin-left:3px}
+#healthWrap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:min(34vw,180px);padding:7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(6px)}
+.small{font-size:11px;color:#cbd5e1;font-weight:700;display:flex;justify-content:space-between;margin-bottom:5px}
+.bar{height:7px;background:#334155;border-radius:99px;overflow:hidden;margin-bottom:5px}
+.bar span{display:block;height:100%;width:100%;border-radius:99px;transition:width .12s}
+#hpFill{background:#4ade80}#jetFill{background:#38bdf8}
+#minimapWrap{position:absolute;top:12px;left:12px;width:180px;padding:5px;background:rgba(10,17,30,.78);border:1px solid rgba(255,255,255,.2);border-radius:10px;backdrop-filter:blur(5px)}.miniTitle{font-size:9px;font-weight:900;letter-spacing:1.5px;color:#7dd3fc;margin:0 0 3px 3px}#minimap{display:block;width:100%;height:92px;border-radius:6px;background:rgba(2,8,20,.8)}
+#rightInfo{position:absolute;top:66px;right:12px;text-align:right;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:12px;font-weight:800}
+#help{position:absolute;left:50%;top:70px;transform:translateX(-50%);font-size:11px;color:#17324b;background:rgba(255,255,255,.65);padding:5px 9px;border-radius:99px;white-space:nowrap}
+.controls{position:absolute;bottom:16px;left:0;right:0;display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px;pointer-events:none}
+.pad{position:relative;width:126px;height:126px;border-radius:50%;background:rgba(9,19,35,.20);border:2px solid rgba(255,255,255,.42);pointer-events:auto;touch-action:none;box-shadow:inset 0 0 0 8px rgba(255,255,255,.05)}
+.stick{position:absolute;width:54px;height:54px;left:34px;top:34px;border-radius:50%;background:rgba(240,248,255,.8);border:2px solid rgba(15,35,55,.35);box-shadow:0 4px 12px #0004;pointer-events:none}
+.rightControls{display:flex;align-items:flex-end;gap:10px;pointer-events:auto}
+.aimPad{width:100px;height:100px}
+.aimPad .stick{width:42px;height:42px;left:27px;top:27px;background:rgba(255,220,170,.9)}
+.actions{display:flex;flex-direction:column;gap:9px;align-items:center}
+.action{border:2px solid rgba(255,255,255,.55);color:#fff;font-weight:900;border-radius:50%;width:64px;height:64px;background:rgba(13,28,48,.72);box-shadow:0 4px 12px #0003;display:grid;place-items:center;user-select:none;touch-action:none}
+.action.fire{width:76px;height:76px;background:rgba(220,66,58,.88);font-size:14px}
+.action.jet{background:rgba(24,131,201,.82)}
+.action.rotate{background:rgba(91,75,170,.82);font-size:21px}.action.grenade{background:rgba(194,91,28,.9);font-size:19px}
+.action.active{filter:brightness(1.35);transform:scale(.96)}
+#weaponBtn{position:absolute;top:12px;right:12px;pointer-events:auto;display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #ffffff55;border-radius:12px;background:rgba(10,17,30,.88);color:#fff;font-size:11px;font-weight:900;box-shadow:0 4px 12px #0004}#weaponBtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}#weaponName{color:#fbbf24}
+.action span{font-size:9px;display:block;letter-spacing:.35px}.action svg{width:27px;height:27px;display:block;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.action.fire svg{width:31px;height:31px}.action.jump{background:rgba(22,163,74,.88)}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(130deg,rgba(5,13,28,.85),rgba(13,33,52,.74));padding:18px;z-index:5}
+.card{width:min(440px,100%);border:1px solid #ffffff30;background:rgba(13,25,43,.95);border-radius:22px;padding:24px;box-shadow:0 20px 70px #0007}
+.logo{font-size:12px;letter-spacing:3px;color:#7dd3fc;font-weight:900}
+h1{font-size:clamp(30px,7vw,48px);line-height:.98;margin:10px 0 12px}
+.card p{color:#cbd5e1;line-height:1.55;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button{border:0;border-radius:12px;padding:13px 16px;font:800 14px system-ui;cursor:pointer}
+.primary{background:#38bdf8;color:#082032;flex:1}
+.secondary{background:#26364b;color:#fff}
+.note{font-size:11px!important;color:#94a3b8!important;margin-bottom:0}
+#toast{position:fixed;left:50%;top:24%;transform:translateX(-50%);background:#0b1729e8;padding:9px 14px;border:1px solid #ffffff30;border-radius:99px;font-weight:800;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:8}
+@media (pointer:fine){.controls{opacity:.8}.pad{width:100px;height:100px}.stick{left:23px;top:23px}}
+@media(max-width:420px){#minimapWrap{top:10px;left:10px;width:132px;padding:4px}#minimap{height:72px}.miniTitle{font-size:8px}#healthWrap{width:130px;bottom:5px;padding:5px 7px}.topbar{top:8px;padding:6px 8px;gap:5px;font-size:10px}#rightInfo{top:62px}#weaponBtn{top:10px;right:10px;padding:6px 8px}#help{top:67px;font-size:10px;max-width:94vw;overflow:hidden;text-overflow:ellipsis}.controls{bottom:12px;padding:0 10px}.pad{width:104px;height:104px}.stick{width:46px;height:46px;left:27px;top:27px}.aimPad{width:82px;height:82px}.aimPad .stick{width:36px;height:36px;left:21px;top:21px}.action{width:55px;height:55px}.action.fire{width:64px;height:64px}}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Game 2D shooter"></canvas>
+<div id="hud">
+  <div id="healthWrap">
+    <div class="small"><span>NYAWA</span><span id="hpText">100 / 100</span></div>
+    <div class="bar"><span id="hpFill"></span></div>
+    <div class="small"><span>JETPACK</span><span id="jetText">100%</span></div>
+    <div class="bar"><span id="jetFill"></span></div>
+  </div>
+  <div id="minimapWrap" aria-label="Minimap musuh terdekat"><div class="miniTitle">RADAR</div><canvas id="minimap" width="180" height="110"></canvas></div>
+  <div class="topbar"><span class="badge" id="roundBadge">RONDE 1</span><span class="badge blueScore">BIRU <b id="blueWins">0</b></span><span class="badge redScore">MERAH <b id="redWins">0</b></span><span class="badge" id="ammo">AK-47 · ∞</span></div>
+  <button id="weaponBtn" type="button" aria-label="Ganti senjata"><svg id="weaponIcon" viewBox="0 0 32 32"><path d="M3 13h7l3-3h8l2 3h6v4h-7l-2 3h-5l-2-3H3z"/><path d="M14 20l-1 5h5l2-5M23 13V9h3v4"/></svg><span id="weaponName">AK-47</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg></button>
+  <div id="rightInfo">BOT TERSISA <span id="botsLeft">5</span><br><span style="color:#9ca3af;font-size:10px">TARGET: 4 POIN</span></div>
+  <div id="help">GERAK · BIDIK / TEMBAK · LOMPAT · JETPACK · GRANAT</div>
+  <div class="controls">
+    <div class="pad" id="movePad" aria-label="Joystick gerak"><div class="stick"></div></div>
+    <div class="rightControls">
+      <div class="pad aimPad" id="aimPad" aria-label="Joystick bidik"><div class="stick"></div></div>
+      <div class="actions">
+        <button class="action jump" id="jumpBtn" type="button" aria-label="Lompat"><svg viewBox="0 0 32 32"><path d="M16 26V7M8 15l8-8 8 8"/><path d="M6 26h20"/></svg><span>LOMPAT</span></button>
+        <button class="action jet" id="jetBtn" type="button" aria-label="Jetpack"><svg viewBox="0 0 32 32"><path d="M11 18V8l5-4 5 4v10l-5 4z"/><path d="M11 12H7v8l4 2M21 12h4v8l-4 2"/><path d="M13 23l-2 5M16 24v5M19 23l2 5"/></svg><span>JETPACK</span></button>
+        <button class="action grenade" id="grenadeBtn" type="button" aria-label="Lempar granat"><svg viewBox="0 0 32 32"><path d="M12 10l2-4h6l2 4"/><path d="M11 10c-4 4-4 12 1 16s12 2 14-3 0-10-4-13z"/><path d="M19 5l3-3M24 6l3-1"/></svg><span>GRANAT</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast" aria-live="polite"></div>
+<div id="overlay">
+  <div class="card">
+    <div class="logo">2D SIDE-SCROLLING SHOOTER</div>
+    <h1>MINI<br>ARENA</h1>
+    <p>Shooter 2D: kamu (biru) melawan 5 bot merah setiap ronde. Menang ronde mendapat 1 poin. Tim pertama yang mencapai 4 poin memenangkan pertandingan.</p>
+    <div class="row"><button class="primary" id="startBtn">MULAI · MODE LANDSCAPE</button><button class="secondary" id="howBtn">KONTROL</button></div>
+    <p class="note">Wajib mode landscape sebelum bermain. PC: A/D bergerak, W/Space lompat, arahkan mouse lalu klik untuk menembak, Shift untuk jetpack. HP: joystick kiri bergerak; kanan membidik + auto-fire; tombol gambar untuk lompat, jetpack, dan granat.</p>
+  </div>
+</div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=0,H=0,dpr=1,last=0,playing=false,dead=false,score=0,roundNumber=1,blueWins=0,redWins=0,matchState="menu",worldW=3600,worldH=1050,camera={x:0,y:0},landscapeRequested=false;
+function resize(){dpr=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+const keys={};let mouse={x:W*.7,y:H*.5,down:false};let move={x:0,y:0},aim={x:1,y:0},jetHeld=false,fireHeld=false,aimHeld=false;
+const platforms=[
+{x:0,y:920,w:3600,h:130},{x:180,y:760,w:350,h:24},{x:650,y:650,w:300,h:24},{x:1040,y:800,w:330,h:24},
+{x:1450,y:680,w:380,h:24},{x:1940,y:770,w:350,h:24},{x:370,y:500,w:230,h:22},{x:880,y:430,w:280,h:22},
+{x:1320,y:510,w:230,h:22},{x:1770,y:450,w:300,h:22},{x:2200,y:570,w:230,h:22},{x:2520,y:760,w:300,h:24},{x:2780,y:610,w:260,h:22},{x:3020,y:790,w:340,h:24},{x:2440,y:450,w:220,h:22},{x:3200,y:500,w:250,h:22}
+];
+const player={x:110,y:820,vx:0,vy:0,w:28,h:48,hp:100,jet:100,face:1,onGround:false,shootCd:0,invuln:0,anim:0,flash:0};
+let bots=[],bullets=[],particles=[],pickups=[],grenades=[],explosions=[];let weapon='ak';
+function spawnBot(x,y){return{x,y,vx:0,vy:0,w:28,h:46,hp:60,maxHp:60,jet:100,face:-1,onGround:false,anim:Math.random()*6,shootCd:.7+Math.random(),flash:0,think:0,dead:false}}
+function beginRound(){
+  Object.assign(player,{x:110,y:820,vx:0,vy:0,hp:100,jet:100,face:1,onGround:false,shootCd:0,invuln:1.2,anim:0,flash:0});
+  score=0;bullets=[];particles=[];pickups=[];grenades=[];explosions=[];bots=[];
+  const starts=[620,1120,1640,2200,2860];
+  for(let i=0;i<5;i++)bots.push(spawnBot(starts[i],820));
+  dead=false;playing=true;matchState='playing';move.x=0;move.y=0;jetHeld=false;fireHeld=false;aimHeld=false;mouse.down=false;
+  $('overlay').style.display='none';$('overlay').querySelector('h1').innerHTML='MINI<br>ARENA';
+  $('overlay').querySelector('.card p').textContent='Kalahkan 5 bot merah. Setiap ronde hanya punya satu nyawa dan bot tidak respawn.';
+  $('startBtn').textContent='MULAI RONDE';updateHud();last=performance.now();
+}
+function finishRound(winner){
+  if(matchState!=='playing')return;
+  playing=false;dead=winner==='red';matchState='roundover';
+  if(winner==='blue')blueWins++;else redWins++;
+  const matchOver=blueWins>=4||redWins>=4;
+  if(matchOver)matchState='matchover';
+  const overlay=$('overlay'),title=overlay.querySelector('h1'),paras=overlay.querySelectorAll('.card p');
+  overlay.style.display='flex';
+  if(matchOver){
+    title.innerHTML=winner==='blue'?'VICTORY!':'DEFEAT';
+    paras[0].textContent=`HASIL AKHIR  ${blueWins} — ${redWins}. ${winner==='blue'?'Kamu mencapai 4 poin lebih dulu!':'Tim merah mencapai 4 poin lebih dulu.'}`;
+    $('startBtn').textContent='MAIN LAGI';
+  }else{
+    title.innerHTML=`RONDE ${roundNumber}<br>SELESAI`;
+    paras[0].textContent=`Pemenang ronde ini: ${winner==='blue'?'BIRU (KAMU)':'MERAH (BOT)'}. Skor sekarang ${blueWins} — ${redWins}. Pertandingan berlanjut sampai salah satu tim mendapat 4 poin.`;
+    $('startBtn').textContent='RONDE BERIKUTNYA';
+  }
+  paras[1].textContent='Kontrol: joystick kiri bergerak, joystick kanan membidik/menembak, tombol lompat, jetpack, dan granat. PC: A/D, W/Space, mouse, Shift, G.';
+  updateHud();
+}
+
+function showToast(s){const t=$('toast');t.textContent=s;t.style.opacity=1;clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.style.opacity=0,1300)}
+function updateHud(){$('weaponName').textContent=weapon==='ak'?'AK-47':'PISTOL';$('ammo').textContent=weapon==='ak'?'AK-47 · ∞':'PISTOL · ∞';$('weaponIcon').innerHTML=weapon==='ak'?'<path d="M3 13h7l3-3h8l2 3h6v4h-7l-2 3h-5l-2-3H3z"/><path d="M14 20l-1 5h5l2-5M23 13V9h3v4"/>':'<path d="M4 12h15l4 4h5v4H16l-4-3H4z"/><path d="M15 17l-2 7h5l2-7M7 12V9h10v3"/>';$('hpText').textContent=Math.max(0,Math.ceil(player.hp))+' / 100';$('hpFill').style.width=Math.max(0,player.hp)+'%';$('jetText').textContent=Math.ceil(player.jet)+'%';$('jetFill').style.width=player.jet+'%';$('roundBadge').textContent='RONDE '+roundNumber;$('blueWins').textContent=blueWins;$('redWins').textContent=redWins;$('botsLeft').textContent=bots.filter(b=>!b.dead).length;}
+async function startGameLandscape(){
+  // A mobile session must be landscape before the match begins.
+  if(W < H){
+    try{
+      if(!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+      if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+    }catch(err){}
+    await new Promise(r=>setTimeout(r,350));resize();
+  }
+  if(W < H){showToast('Putar HP ke posisi mendatar dulu, coo!');$('startBtn').textContent='COBA LAGI · LANDSCAPE';return;}
+  if(matchState==='menu'||matchState==='matchover'){blueWins=0;redWins=0;roundNumber=1;}else if(matchState==='roundover'){roundNumber++;}beginRound();
+}
+$('startBtn').addEventListener('click',startGameLandscape);
+$('weaponBtn').addEventListener('click',()=>{weapon=weapon==='ak'?'pistol':'ak';updateHud();showToast(weapon==='ak'?'AK-47 siap digunakan':'Pistol siap digunakan')});
+$('howBtn').addEventListener('click',()=>showToast('HP: mode landscape wajib · joystick kiri gerak · kanan bidik/tembak'));
+$('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(playing&&player.onGround){player.vy=-470;player.onGround=false;particle(player.x+14,player.y+45,'#dbeafe',7)}$('jumpBtn').classList.add('active')});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('jumpBtn').addEventListener(ev,()=>$('jumpBtn').classList.remove('active'));
+$('jumpBtn').addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k==='g'&&!e.repeat)throwGrenade();if(e.key==='Enter'&&!playing){startGameLandscape()}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;if(e.pointerType==='mouse'){const wx=mouse.x+camera.x,wy=mouse.y+camera.y;aim.x=wx-(player.x+player.w/2);aim.y=wy-(player.y+player.h/2);normalizeAim()}});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){mouse.down=true;fireHeld=true}});
+addEventListener('pointerup',e=>{if(e.pointerType==='mouse'){mouse.down=false;fireHeld=false}});
+function normalizeAim(){const n=Math.hypot(aim.x,aim.y)||1;aim.x/=n;aim.y/=n;if(Math.abs(aim.x)>.12)player.face=Math.sign(aim.x)}
+function bindPad(id,which){const el=$(id),stick=el.querySelector('.stick');let active=null,rect=null;
+function set(e){
+  rect=el.getBoundingClientRect();
+  let dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2);
+  const max=rect.width*.34,n=Math.hypot(dx,dy);
+  if(n>max){dx=dx/n*max;dy=dy/n*max}
+  stick.style.transform=`translate(${dx}px,${dy}px)`;
+  if(which==='move'){
+    move.x=dx/max;move.y=dy/max;
+  }else{
+    const mag=Math.hypot(dx,dy);
+    if(mag>max*.12){
+      aim.x=dx/mag;aim.y=dy/mag;
+      aimHeld=true;
+      if(Math.abs(aim.x)>.08)player.face=Math.sign(aim.x);
+    }else{
+      aimHeld=false;
+    }
+  }
+}
+function end(e){
+  if(active!==null&&(!e||e.pointerId===active)){
+    active=null;stick.style.transform='translate(0,0)';
+    if(which==='move'){move.x=0;move.y=0}
+    else{aimHeld=false}
+  }
+}
+el.addEventListener('pointerdown',e=>{e.preventDefault();active=e.pointerId;el.setPointerCapture(active);if(which==='aim')aimHeld=true;set(e)});
+el.addEventListener('pointermove',e=>{if(active===e.pointerId){e.preventDefault();set(e)}});
+el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end)}
+bindPad('movePad','move');bindPad('aimPad','aim');
+function bindHold(id,fnOn,fnOff){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);fnOn();el.classList.add('active')});const off=e=>{fnOff();el.classList.remove('active')};el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('lostpointercapture',off)}
+bindHold('jetBtn',()=>jetHeld=true,()=>jetHeld=false);
+$('grenadeBtn').addEventListener('pointerdown',e=>{e.preventDefault();throwGrenade()});
+function throwGrenade(){
+  if(!playing||dead)return;
+  if(grenades.filter(g=>g.owner===player).length>=3){showToast('Tunggu granat yang dilempar meledak dulu');return}
+  const ax=aim.x,ay=aim.y;
+  grenades.push({x:player.x+player.w/2+ax*18,y:player.y+player.h*.38+ay*12,
+    vx:ax*390+player.vx*.45,vy:ay*300-210,fuse:3,owner:player});
+  particle(player.x+player.w/2,player.y+player.h*.35,'#d1d5db',5);
+}
+async function toggleLandscape(){
+  try{
+    if(!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+    if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+    landscapeRequested=true;showToast('Mode landscape aktif');
+  }catch(err){
+    showToast('Putar HP ke posisi mendatar untuk mode landscape');
+  }
+  setTimeout(resize,150);
+}
+
+function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function collide(ent,dx,dy){ent.x+=dx;for(const p of platforms){if(rectHit(ent,p)){if(dx>0)ent.x=p.x-ent.w;else if(dx<0)ent.x=p.x+p.w;ent.vx=0}}ent.y+=dy;ent.onGround=false;for(const p of platforms){if(rectHit(ent,p)){if(dy>0){ent.y=p.y-ent.h;ent.onGround=true}else if(dy<0)ent.y=p.y+p.h;ent.vy=0}}if(ent.x<0){ent.x=0;ent.vx=0}if(ent.x+ent.w>worldW){ent.x=worldW-ent.w;ent.vx=0}}
+function particle(x,y,color,n=5){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*220,vy:(Math.random()-.8)*200,life:.25+Math.random()*.3,max:.55,color,size:2+Math.random()*3})}
+function shoot(owner,dirX,dirY){const isPlayer=owner===player;const pistol=isPlayer&&weapon==='pistol';const speed=pistol?610:720;let x=owner.x+owner.w/2+dirX*(pistol?15:25),y=owner.y+owner.h*.42+dirY*10;bullets.push({x,y,vx:dirX*speed+(owner.vx||0)*.25,vy:dirY*speed,life:1.25,owner,damage:pistol?14:20});owner.flash=.08;particle(x,y,pistol?'#fef3c7':'#ffd166',pistol?2:3)}
+function update(dt){if(!playing||dead||matchState!=='playing')return;dt=Math.min(dt,.033);
+player.anim+=dt*(Math.abs(player.vx)>10?10:2);player.shootCd-=dt;player.invuln-=dt;player.flash-=dt;
+const left=keys.a||keys.arrowleft,right=keys.d||keys.arrowright;
+let mx=move.x+(right?1:0)-(left?1:0);if(Math.abs(mx)>1)mx=Math.sign(mx);
+player.vx+=(mx*300-player.vx)*Math.min(1,dt*9);
+if((keys.w||keys.arrowup||keys[' '])&&player.onGround){player.vy=-470;player.onGround=false;particle(player.x+14,player.y+45,'#dbeafe',7)}
+const jet=jetHeld||keys.shift;
+if(jet&&player.jet>0){
+  // Continuous upward thrust: the jetpack now reliably lifts off platforms and can keep the player airborne.
+  player.vy -= 1850*dt;
+  player.vy = Math.max(player.vy, -430);
+  player.jet = Math.max(0, player.jet-24*dt);
+  if(Math.random()<.95){particle(player.x+player.w/2-player.face*4,player.y+player.h-2,'#ff6b1a',2);particle(player.x+player.w/2-player.face*4,player.y+player.h-3,'#ffd166',1)}
+}else{
+  player.jet = Math.min(100, player.jet+16*dt);
+}
+player.vy += 1050*dt;
+player.vy = Math.min(player.vy,700);
+if(jet&&player.jet>0) player.vy = Math.max(player.vy, -430);
+collide(player,player.vx*dt,player.vy*dt);
+if(player.y>worldH+100){player.hp=0}
+if(player.hp<=0){player.hp=0;finishRound('red');return}
+if(Math.abs(aim.x)>.1)player.face=Math.sign(aim.x);
+if((aimHeld||fireHeld||mouse.down||keys.j||keys.k)&&player.shootCd<=0){shoot(player,aim.x,aim.y);player.shootCd=weapon==='ak'?.17:.28}
+for(const b of bots){if(b.dead)continue;b.anim+=dt*(Math.abs(b.vx)>10?9:2);b.shootCd-=dt;b.flash-=dt;b.think-=dt;
+const dx=(player.x+player.w/2)-(b.x+b.w/2),dy=(player.y+player.h/2)-(b.y+b.h/2),dist=Math.abs(dx);
+b.face=dx>0?1:-1;
+// Pursue the player's height too: jump between platforms and use a limited bot jetpack when the player flies.
+const playerAbove=dy < -75;
+if(dist>115)b.vx+=(Math.sign(dx)*175-b.vx)*Math.min(1,dt*3.2);
+else if(dist<78)b.vx+=(-Math.sign(dx)*85-b.vx)*Math.min(1,dt*2.4);
+if(b.onGround && playerAbove && Math.abs(dx)<420 && b.think<=0){b.vy=-430;b.onGround=false;b.think=.65}
+const botJet=playerAbove && Math.abs(dx)<560 && b.jet>0 && (b.vy>-120 || b.y-player.y>110);
+if(botJet){b.vy-=1450*dt;b.vy=Math.max(b.vy,-390);b.jet=Math.max(0,b.jet-23*dt);
+if(Math.random()<.7){particle(b.x+b.w/2-b.face*4,b.y+b.h-2,'#ff6b1a',2);particle(b.x+b.w/2-b.face*4,b.y+b.h-2,'#ffd166',1)}
+}else b.jet=Math.min(100,b.jet+13*dt);
+if(b.think<=0){if(b.onGround&&Math.random()<.18)b.vy=-400;b.think=.3+Math.random()*.45}
+b.vy+=1000*dt;if(botJet)b.vy=Math.max(b.vy,-390);collide(b,b.vx*dt,b.vy*dt);
+if(Math.abs(dx)<560&&b.shootCd<=0){let tx=player.x+player.w/2+(Math.random()-.5)*150,ty=player.y+player.h*.42+(Math.random()-.5)*110,ax=tx-(b.x+b.w/2),ay=ty-(b.y+b.h*.4),n=Math.hypot(ax,ay)||1;bullets.push({x:b.x+b.w/2+ax/n*17,y:b.y+20+ay/n*5,vx:ax/n*350,vy:ay/n*350,life:1.8,owner:b,damage:4});b.shootCd=1.05+Math.random()*.8}
+}
+for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;let remove=b.life<=0||b.x<0||b.x>worldW;for(const p of platforms)if(rectHit({x:b.x-3,y:b.y-3,w:6,h:6},p)){remove=true;particle(b.x,b.y,'#fbbf24',3);break}
+if(!remove&&b.owner!==player&&rectHit({x:b.x-3,y:b.y-3,w:6,h:6},player)&&player.invuln<=0){player.hp-=b.damage;player.invuln=.18;particle(b.x,b.y,'#fb7185',7);remove=true}
+for(const bot of bots){if(!remove&&!bot.dead&&b.owner===player&&rectHit({x:b.x-3,y:b.y-3,w:6,h:6},bot)){bot.hp-=b.damage;bot.flash=.12;particle(b.x,b.y,'#fca5a5',5);remove=true;if(bot.hp<=0){bot.dead=true;score++;particle(bot.x+14,bot.y+20,'#fb923c',16);if(Math.random()<.45)pickups.push({x:bot.x,y:bot.y,w:18,h:18,type:'med'});updateHud()}}}
+if(remove)bullets.splice(i,1)}
+for(let i=grenades.length-1;i>=0;i--){
+ const g=grenades[i];g.fuse-=dt;g.vy+=650*dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.vx*=Math.pow(.985,dt*60);
+ for(const plat of platforms){if(rectHit({x:g.x-5,y:g.y-5,w:10,h:10},plat)){if(g.vy>0)g.y=plat.y-5;else g.y=plat.y+plat.h+5;g.vy*=-.42;g.vx*=.78}}
+ if(g.fuse<=0){
+   particle(g.x,g.y,'#ff6b1a',15);particle(g.x,g.y,'#ffd166',10);particle(g.x,g.y,'#f3f4f6',5);particle(g.x,g.y,'#7dd3fc',2);
+    explosions.push({x:g.x,y:g.y,life:.42,max:.42,radius:76});
+   // Bright expanding blast ring.
+   grenades.splice(i,1);
+   const radius=78;
+   if(g.owner===player){for(const bot of bots){if(bot.dead)continue;const d=Math.hypot(bot.x+bot.w/2-g.x,bot.y+bot.h/2-g.y);if(d<radius){bot.hp-=Math.max(8,62*(1-d/radius));bot.flash=.18;particle(bot.x+bot.w/2,bot.y+bot.h/2,'#fb923c',10);if(bot.hp<=0){bot.dead=true;score++;particle(bot.x+14,bot.y+20,'#fb923c',18);updateHud()}}}}
+   else {const d=Math.hypot(player.x+player.w/2-g.x,player.y+player.h/2-g.y);if(d<radius){player.hp-=Math.max(8,48*(1-d/radius));player.invuln=.25}}
+ } 
+}
+for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];if(rectHit(player,p)){player.hp=Math.min(100,player.hp+25);pickups.splice(i,1);showToast('+25 HP');particle(player.x+14,player.y+20,'#4ade80',8)}}
+for(let i=explosions.length-1;i>=0;i--){explosions[i].life-=dt;if(explosions[i].life<=0)explosions.splice(i,1)}
+for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=300*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
+if(bots.length===5&&bots.every(b=>b.dead)){finishRound('blue');return}
+camera.x=Math.max(0,Math.min(worldW-W,player.x+player.w/2-W*.48));camera.y=Math.max(0,Math.min(worldH-H,player.y+player.h/2-H*.56));
+updateHud()}
+function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function drawBackground(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#7dd3fc');g.addColorStop(.58,'#b7e7f5');g.addColorStop(1,'#e0f2fe');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ctx.save();ctx.translate(-camera.x*.18,-camera.y*.12);for(let i=0;i<16;i++){let x=i*260-40;ctx.fillStyle=i%2?'#74b8bd':'#8ac7c7';ctx.beginPath();ctx.moveTo(x,690);ctx.lineTo(x+90,420+(i%3)*45);ctx.lineTo(x+220,690);ctx.fill()}ctx.restore();
+ctx.save();ctx.translate(-camera.x*.5,-camera.y*.3);for(let i=0;i<28;i++){let x=i*150;ctx.fillStyle='#ffffff70';ctx.beginPath();ctx.ellipse(x+((i*37)%90),130+(i%4)*65,32,10,0,0,Math.PI*2);ctx.ellipse(x+25+((i*37)%90),125+(i%4)*65,24,12,0,0,Math.PI*2);ctx.fill()}ctx.restore()}
+function drawWorld(){ctx.save();ctx.translate(-camera.x,-camera.y);
+for(const p of platforms){ctx.fillStyle='#334155';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle='#64748b';ctx.fillRect(p.x,p.y,p.w,5);ctx.fillStyle='#475569';for(let x=p.x+12;x<p.x+p.w-8;x+=35){ctx.fillRect(x,p.y+9,20,3)}}
+// Layered fireball blast: hot core, orange flame tongues, smoke and expanding shock rings.
+for(const e of explosions){const t=1-e.life/e.max;const r=e.radius*(.25+t*.9);ctx.save();ctx.globalAlpha=Math.max(0,e.life/e.max);ctx.globalCompositeOperation='lighter';
+let glow=ctx.createRadialGradient(e.x,e.y,2,e.x,e.y,r);glow.addColorStop(0,'rgba(255,255,210,.98)');glow.addColorStop(.22,'rgba(255,205,55,.9)');glow.addColorStop(.55,'rgba(255,90,15,.62)');glow.addColorStop(1,'rgba(220,25,10,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(e.x,e.y,r,0,Math.PI*2);ctx.fill();
+for(let k=0;k<7;k++){const a=k*Math.PI*2/7+t*1.5;const wob=Math.sin(k*7.3+t*16)*2.5;const fr=r*(.42+(k%3)*.13);const fx=e.x+Math.cos(a)*fr*.58,fy=e.y+Math.sin(a)*fr*.58;ctx.save();ctx.translate(fx,fy);ctx.rotate(a+Math.PI/2);ctx.fillStyle=k%3===0?'#fff7ae':(k%2?'#ff3b0b':'#ff9f1c');ctx.beginPath();ctx.moveTo(0,-fr*.56);ctx.quadraticCurveTo(fr*.32,-fr*.2+wob,fr*.2,fr*.34);ctx.quadraticCurveTo(0,fr*.16,-fr*.2,fr*.34);ctx.quadraticCurveTo(-fr*.3,-fr*.18-wob,0,-fr*.56);ctx.fill();ctx.restore()}
+ctx.globalCompositeOperation='source-over';ctx.strokeStyle='rgba(255,230,145,.9)';ctx.lineWidth=2*(1-t)+.4;ctx.beginPath();ctx.arc(e.x,e.y,r*(.45+t*.6),0,Math.PI*2);ctx.stroke();ctx.restore()}
+for(const p of pickups){ctx.fillStyle='#4ade80';ctx.beginPath();ctx.arc(p.x+9,p.y+9,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#052e16';ctx.fillRect(p.x+7,p.y+3,4,12);ctx.fillRect(p.x+3,p.y+7,12,4)}
+for(const b of bots)if(!b.dead)drawCharacter(b,true);
+drawCharacter(player,false,aim);
+for(const g of grenades){ctx.save();
+// Fiery, flickering fuse trail.
+const flick=Math.random()*5;ctx.globalAlpha=.9;ctx.fillStyle='#f97316';ctx.beginPath();ctx.moveTo(g.x-3,g.y+3);ctx.quadraticCurveTo(g.x-11-flick,g.y+5,g.x-8-flick,g.y+13+flick);ctx.quadraticCurveTo(g.x-1,g.y+9,g.x+1,g.y+4);ctx.fill();ctx.fillStyle='#fde047';ctx.beginPath();ctx.moveTo(g.x-2,g.y+4);ctx.quadraticCurveTo(g.x-5-flick*.4,g.y+8,g.x-4,g.y+10);ctx.quadraticCurveTo(g.x+1,g.y+7,g.x,g.y+4);ctx.fill();
+ctx.globalAlpha=1;ctx.shadowColor='#fb923c';ctx.shadowBlur=12;ctx.fillStyle='#263449';ctx.beginPath();ctx.arc(g.x,g.y,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#d1d5db';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#fbbf24';ctx.font='bold 9px system-ui';ctx.fillText(Math.max(0,Math.ceil(g.fuse)),g.x-3,g.y-10);ctx.restore()}
+for(const b of bullets){ctx.strokeStyle=b.owner===player?'#fff3a3':'#fb7185';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x-b.vx*.018,b.y-b.vy*.018);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill()}
+for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);ctx.globalAlpha=1}
+ctx.restore()}
+function drawCharacter(c,isBot,playerAim=null){
+const cx=c.x+c.w/2,cy=c.y+c.h;
+const moving=Math.min(1,Math.abs(c.vx)/150),phase=c.anim||0,run=Math.sin(phase)*moving;
+const face=c.face||1;
+ctx.save();ctx.translate(cx,cy);
+// Jet flame: layered tapered orange/red outer flame and bright yellow core.
+const jetActive=(!isBot&&(jetHeld||keys.shift)&&player.jet>0)||(isBot&&c.jet>0&&c.vy<-90);
+if(jetActive){
+ const flicker=5+Math.random()*9;
+ ctx.save();ctx.translate(-face*9,-30);
+ ctx.fillStyle='#dc2626';ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(-10,flicker*.7,-2,flicker+8);ctx.quadraticCurveTo(1,flicker*.5,3,0);ctx.fill();
+ ctx.fillStyle='#f97316';ctx.beginPath();ctx.moveTo(-2,0);ctx.quadraticCurveTo(-6,flicker*.6,0,flicker+4);ctx.quadraticCurveTo(4,flicker*.5,2,0);ctx.fill();
+ ctx.fillStyle='#fde047';ctx.beginPath();ctx.moveTo(-1,0);ctx.quadraticCurveTo(-2,flicker*.4,0,flicker*.65+2);ctx.quadraticCurveTo(2,flicker*.4,1,0);ctx.fill();ctx.restore();
+}
+ctx.globalAlpha=.16;ctx.fillStyle='#0f172a';ctx.beginPath();ctx.ellipse(0,1,18,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+// Animated legs stay grounded, while the upper body and weapon follow the aim.
+ctx.save();ctx.scale(face,1);
+const legA=run*8,legB=-run*8;
+ctx.lineCap='round';ctx.lineWidth=6;ctx.strokeStyle=isBot?'#7f1d1d':'#1e3a8a';
+ctx.beginPath();ctx.moveTo(-5,-17);ctx.lineTo(-7+legA,-7);ctx.lineTo(-8+legA,-1);ctx.stroke();
+ctx.beginPath();ctx.moveTo(5,-17);ctx.lineTo(7+legB,-7);ctx.lineTo(9+legB,-1);ctx.stroke();
+ctx.lineWidth=4;ctx.strokeStyle='#111827';ctx.beginPath();ctx.moveTo(-8+legA,-1);ctx.lineTo(-2+legA,-1);ctx.stroke();ctx.beginPath();ctx.moveTo(9+legB,-1);ctx.lineTo(15+legB,-1);ctx.stroke();
+// Equipment carried on the back/hip when not in hand.
+if(!isBot&&weapon==='pistol'){
+  // AK-47 slung diagonally across the back, behind the body.
+  ctx.save();ctx.translate(-12,-34);ctx.rotate(-.52);
+  ctx.fillStyle='#8b552e';ctx.fillRect(-3,-2,7,8);ctx.fillStyle='#27313a';ctx.fillRect(-1,-15,4,25);ctx.fillStyle='#a66b36';ctx.fillRect(-2,-9,6,8);ctx.fillStyle='#111827';ctx.fillRect(0,-22,2,8);ctx.restore();
+}else if(!isBot&&weapon==='ak'){
+  // Small pistol holster on the right hip.
+  rounded(7,-20,7,10,2,'#374151','#111827');ctx.fillStyle='#1f2937';ctx.fillRect(9,-25,3,9);
+}
+// torso, backpack, head
+ctx.fillStyle=isBot?'#dc5757':'#2563eb';rounded(-10,-38,20,23,5,ctx.fillStyle,'#172554');
+ctx.fillStyle=isBot?'#991b1b':'#1d4ed8';ctx.fillRect(-10,-24,20,5);
+ctx.fillStyle='#475569';rounded(-14,-34,6,16,2,'#64748b','#334155');ctx.fillStyle='#94a3b8';ctx.fillRect(-13,-31,4,3);
+ctx.fillStyle='#f1c7a5';ctx.beginPath();ctx.arc(0,-44,9,0,Math.PI*2);ctx.fill();
+ctx.fillStyle=isBot?'#7f1d1d':'#1e40af';ctx.beginPath();ctx.arc(0,-47,9.5,Math.PI,Math.PI*2);ctx.lineTo(10,-44);ctx.lineTo(-10,-44);ctx.fill();
+ctx.fillStyle='#0f172a';ctx.fillRect(3,-45,5,2);ctx.fillStyle='#cbd5e1';ctx.fillRect(2,-42,8,2);
+ctx.restore();
+
+// Aim direction is truly 360 degrees. Mirror left-facing aim, then rotate the weapon around the shoulder.
+let ax=playerAim?playerAim.x:(face||1), ay=playerAim?playerAim.y:0;
+const angle=isBot?0:Math.atan2(ay,ax);
+const shoulderX=ax<0?-5:5, shoulderY=-32;
+ctx.save();
+ctx.translate(shoulderX,shoulderY);
+ctx.rotate(isBot?0:angle);
+ctx.lineCap='round';ctx.lineWidth=5;ctx.strokeStyle=isBot?'#f1b69a':'#e9b995';
+ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(8,2);ctx.lineTo(13,0);ctx.stroke();
+// Draw the selected weapon. Rifle uses two hands; pistol is held one-handed.
+ctx.lineJoin='round';
+if(!isBot&&weapon==='pistol'){
+  // Compact pistol slide, grip and muzzle.
+  rounded(8,-5,16,5,1,'#374151','#111827');ctx.fillStyle='#9ca3af';ctx.fillRect(11,-6,10,1.5);ctx.fillStyle='#1f2937';ctx.fillRect(22,-4,4,2);
+  ctx.fillStyle='#20282e';ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(18,0);ctx.lineTo(17,8);ctx.lineTo(13,7);ctx.closePath();ctx.fill();
+}else{
+// wooden stock behind receiver
+ctx.fillStyle='#8b552e';ctx.strokeStyle='#3b281b';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(2,-2);ctx.lineTo(7,-5);ctx.lineTo(13,-4);ctx.lineTo(14,1);ctx.lineTo(7,3);ctx.closePath();ctx.fill();ctx.stroke();
+// receiver and upper cover
+rounded(8,-5,18,7,1.5,'#303b42','#111827');ctx.fillStyle='#64727a';ctx.fillRect(10,-6,14,2);
+// wooden handguard
+rounded(20,-4,9,5,1,'#a66b36','#49301c');ctx.fillStyle='#5b4631';ctx.fillRect(21,-2,7,1);
+// long steel barrel + muzzle
+ctx.fillStyle='#1f2937';ctx.fillRect(28,-3,9,2.5);ctx.fillStyle='#94a3b8';ctx.fillRect(36,-4,2,4);
+// front and rear sights
+ctx.fillStyle='#111827';ctx.fillRect(31,-6,2,3);ctx.fillRect(12,-7,3,2);
+// pistol grip
+ctx.fillStyle='#30363b';ctx.beginPath();ctx.moveTo(15,1);ctx.lineTo(20,1);ctx.lineTo(18,8);ctx.lineTo(15,7);ctx.closePath();ctx.fill();
+// recognizable curved AK magazine
+ctx.fillStyle='#20282e';ctx.strokeStyle='#0b1116';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(21,1);ctx.quadraticCurveTo(25,3,24,7);ctx.lineTo(22,12);ctx.quadraticCurveTo(19,13,19,9);ctx.lineTo(20,3);ctx.closePath();ctx.fill();ctx.stroke();
+  // Second hand wraps the rifle's foregrip, visibly making the AK a two-handed weapon.
+  if(!isBot){ctx.strokeStyle='#e9b995';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(5,4);ctx.lineTo(22,0);ctx.stroke();ctx.fillStyle='#f1c7a5';ctx.beginPath();ctx.ellipse(22,-1,3.5,2.8,0,0,Math.PI*2);ctx.fill()}
+}
+if(c.flash>0){ctx.shadowColor='#fb923c';ctx.shadowBlur=14;ctx.fillStyle='#fff7ae';ctx.beginPath();const muzzle=(!isBot&&weapon==='pistol')?26:38;ctx.moveTo(muzzle,0);ctx.lineTo(muzzle+8,-5);ctx.lineTo(muzzle+5,0);ctx.lineTo(muzzle+9,5);ctx.lineTo(muzzle,3);ctx.fill();ctx.shadowBlur=0}
+ctx.restore();
+// arm behind body
+ctx.lineCap='round';ctx.lineWidth=4;ctx.strokeStyle=isBot?'#f1b69a':'#e9b995';
+ctx.beginPath();ctx.moveTo(-6,-32);ctx.lineTo(-13,-25+run*3);ctx.stroke();
+ctx.restore();
+// health bar above bots
+if(isBot){ctx.fillStyle='#1f2937';ctx.fillRect(c.x-2,c.y-14,c.w+4,5);ctx.fillStyle='#ef4444';ctx.fillRect(c.x,c.y-13,(c.w)*Math.max(0,c.hp/c.maxHp),3)}
+}
+function drawMinimap(){
+ const c=$('minimap');if(!c)return;const m=c.getContext('2d'),mw=c.width,mh=c.height;
+ m.clearRect(0,0,mw,mh);m.fillStyle='#081525';m.fillRect(0,0,mw,mh);
+ const sx=mw/worldW,sy=mh/worldH;
+ // map platforms
+ m.fillStyle='#426078';for(const p of platforms)m.fillRect(p.x*sx,p.y*sy,Math.max(1,p.w*sx),Math.max(1,p.h*sy));
+ // show only nearby living enemies so the radar is useful rather than cluttered
+ const px=player.x+player.w/2,py=player.y+player.h/2,range=850;
+ for(const b of bots){if(b.dead)continue;const d=Math.hypot((b.x+b.w/2)-px,(b.y+b.h/2)-py);if(d<=range){m.fillStyle='#fb5365';m.beginPath();m.arc((b.x+b.w/2)*sx,(b.y+b.h/2)*sy,3.2,0,Math.PI*2);m.fill()}}
+ m.fillStyle='#5eead4';m.beginPath();m.arc(px*sx,py*sy,3.8,0,Math.PI*2);m.fill();
+ // small viewing window marker
+ m.strokeStyle='rgba(125,211,252,.7)';m.lineWidth=1;m.strokeRect(camera.x*sx,camera.y*sy,Math.max(2,W*sx),Math.max(2,H*sy));
+ m.fillStyle='#cbd5e1';m.font='bold 9px system-ui';m.fillText('MUSUH MERAH',5,mh-5);
+}
+function render(){drawBackground();drawWorld();drawMinimap();if(!playing){ctx.fillStyle='#0f172a';ctx.font='700 14px system-ui';ctx.fillText('Tekan MULAI untuk bermain',18,H-20)}}
+function loop(t){const dt=(t-last)/1000||0;last=t;update(dt);render();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
