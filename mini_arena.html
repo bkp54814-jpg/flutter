@@ -374,12 +374,12 @@ if(c.y+c.h < worldH-90 && c.vy < -40) row=3;
 else if(!isBot && c.flash>0) row=4;
 else if(speed>175) row=2;
 else if(speed>18) row=1;
-const frame=(row===0)?Math.floor(performance.now()/650)%4:(row===1?Math.floor(performance.now()/130)%4:(row===2?Math.floor(performance.now()/90)%4:(row===3?Math.floor(performance.now()/115)%4:Math.floor(performance.now()/110)%4)));
+const frame=(row===0)?0:(row===1?Math.floor(performance.now()/130)%4:(row===2?Math.floor(performance.now()/90)%4:(row===3?Math.floor(performance.now()/115)%4:Math.floor(performance.now()/110)%4)));
 const sw=spr.naturalWidth/4, sh=spr.naturalHeight/5;
 ctx.save();ctx.translate(cx,cy);ctx.scale(face,1);
 // subtle bob keeps the character from feeling stiff while standing/moving
 const bob=row===0?Math.sin(performance.now()/260)*1.1:0;
-ctx.globalAlpha=1;ctx.drawImage(spr,frame*sw,row*sh,sw,sh,-c.w*1.25,-c.h*1.65+bob,c.w*2.5,c.h*1.75);ctx.restore();
+ctx.globalAlpha=1;ctx.drawImage(spr,frame*sw,row*sh,sw,sh,-c.w*1.4,-c.h*1.8+bob,c.w*2.8,c.h*1.95);
 
 // Aim direction is truly 360 degrees. Mirror the weapon's local vertical axis while facing left so the magazine/grip don't look upside down.
 let ax=playerAim?playerAim.x:(face||1), ay=playerAim?playerAim.y:0;
