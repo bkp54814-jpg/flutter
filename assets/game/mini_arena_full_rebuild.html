@@ -47,11 +47,28 @@ button{border:0;border-radius:12px;padding:13px 16px;font:800 14px system-ui;cur
 #toast{position:fixed;left:50%;top:24%;transform:translateX(-50%);background:#0b1729e8;padding:9px 14px;border:1px solid #ffffff30;border-radius:99px;font-weight:800;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:8}
 @media (pointer:fine){.controls{opacity:.8}.pad{width:100px;height:100px}.stick{left:23px;top:23px}}
 @media(max-width:420px){#minimapWrap{top:10px;left:10px;width:132px;padding:4px}#minimap{height:72px}.miniTitle{font-size:8px}#healthWrap{width:130px;bottom:5px;padding:5px 7px}.topbar{top:8px;padding:6px 8px;gap:5px;font-size:10px}#rightInfo{top:62px}#weaponBtn{top:10px;right:10px;padding:6px 8px}#help{top:67px;font-size:10px;max-width:94vw;overflow:hidden;text-overflow:ellipsis}.controls{bottom:12px;padding:0 10px}.pad{width:104px;height:104px}.stick{width:46px;height:46px;left:27px;top:27px}.aimPad{width:82px;height:82px}.aimPad .stick{width:36px;height:36px;left:21px;top:21px}.action{width:55px;height:55px}.action.fire{width:64px;height:64px}}
+
+#lobbyScreen,#editorScreen{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 20% 10%,#17456aee,transparent 55%),linear-gradient(135deg,#071426f5,#142d45f5);overflow:auto}
+#lobbyScreen .card{max-width:760px;width:100%;max-height:94vh;overflow:auto}
+.lobbyGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.lobbyTile{min-height:78px;border:1px solid #ffffff24;border-radius:15px;padding:12px;background:linear-gradient(145deg,#1e3a55,#122237);color:#fff;text-align:left;display:flex;flex-direction:column;gap:5px}
+.lobbyTile strong{font-size:14px}.lobbyTile small{color:#a8bfd4;font-size:10px;font-weight:600}.lobbyTile .emoji{font-size:24px}
+#editorScreen{z-index:12;background:#06101cf5;display:none}
+.editorCard{width:min(700px,100%);max-height:94vh;overflow:auto;border:1px solid #ffffff28;border-radius:20px;padding:20px;background:#0e1b2e}
+.editorGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.editorField{background:#15263b;border:1px solid #ffffff18;border-radius:12px;padding:10px}.editorField label{display:flex;justify-content:space-between;font-size:12px;font-weight:800;margin-bottom:8px}.editorField input[type=range],.editorField input[type=number],.editorField select{width:100%}.editorField input[type=number],.editorField select{padding:8px;border-radius:8px;background:#081426;color:#fff;border:1px solid #ffffff2a}
+.previewBox{height:150px;background:repeating-conic-gradient(#1e293b 0% 25%,#0f172a 0% 50%) 50%/20px 20px;border:1px solid #ffffff25;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0}.previewBox img{max-width:100%;max-height:100%;object-fit:contain}
+#lobbyBtn{position:fixed;left:150px;top:12px;z-index:3;pointer-events:auto;padding:8px 11px;background:#0b1729dc;color:white;border:1px solid #ffffff44;border-radius:10px;font-size:11px}
+.victoryTitle{animation:victoryPop .75s cubic-bezier(.2,1.6,.4,1) both;text-shadow:0 0 22px #fbbf24}.victoryFx{font-size:clamp(22px,5vw,40px);text-align:center;animation:victoryFloat 2s ease-in-out infinite;letter-spacing:8px}.victoryBadge{display:inline-block;animation:trophySpin 2.4s ease-in-out infinite}
+@keyframes victoryPop{0%{transform:scale(.25) rotate(-8deg);opacity:0}70%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1);opacity:1}}
+@keyframes victoryFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}@keyframes trophySpin{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-14deg)}90%{transform:rotate(14deg)}}
+@media(max-width:560px){.lobbyGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.editorGrid{grid-template-columns:1fr}#lobbyScreen .card{padding:17px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="Game 2D shooter"></canvas>
 <div id="hud">
+  <button id="lobbyBtn" type="button">☰ LOBBY</button>
   <div id="healthWrap">
     <div class="small"><span>NYAWA</span><span id="hpText">100 / 100</span></div>
     <div class="bar"><span id="hpFill"></span></div>
@@ -76,13 +93,49 @@ button{border:0;border-radius:12px;padding:13px 16px;font:800 14px system-ui;cur
   </div>
 </div>
 <div id="toast" aria-live="polite"></div>
-<div id="overlay">
+<div id="lobbyScreen">
+  <div class="card">
+    <div class="logo">MINI ARENA • GAME HUB</div>
+    <h1>MINI<br>ARENA</h1>
+    <p>Selamat datang di lobby. Mainkan mode latihan sekarang, atau buka UPDATE untuk mengimpor karakter, background, jetpack, dan audio buatanmu sendiri tanpa build APK ulang.</p>
+    <div class="lobbyGrid">
+      <button class="lobbyTile" id="lobbyPlay"><span class="emoji">⚔️</span><strong>MAIN SEKARANG</strong><small>Mode latihan melawan bot</small></button>
+      <button class="lobbyTile" id="lobbyUpdate"><span class="emoji">🧰</span><strong>UPDATE / EDITOR</strong><small>Karakter, arena, jetpack, audio</small></button>
+      <button class="lobbyTile" id="lobbyRank"><span class="emoji">🏆</span><strong>MODE RANK</strong><small>Slot disiapkan • belum aktif</small></button>
+      <button class="lobbyTile" id="lobbyMabar"><span class="emoji">👥</span><strong>MABAR ONLINE</strong><small>Slot disiapkan • perlu server</small></button>
+      <button class="lobbyTile" id="lobbyHelp"><span class="emoji">🎮</span><strong>KONTROL</strong><small>HP dan PC</small></button>
+      <button class="lobbyTile" id="lobbyReset"><span class="emoji">♻️</span><strong>RESET ASET</strong><small>Hapus skin kustom tersimpan</small></button>
+    </div>
+    <p class="note">Aset tersimpan lokal di perangkat/browser ini. Mode Rank dan Mabar masih berupa slot lobby; multiplayer online sungguhan memerlukan server dan sinkronisasi.</p>
+  </div>
+</div>
+<div id="editorScreen">
+ <div class="editorCard">
+  <div class="logo">WORKSHOP • LIVE ASSET UPDATE</div><h2 id="editorTitle">EDITOR ASET</h2>
+  <p class="note">Pilih kategori, impor gambar PNG/JPG atau audio, lalu atur ukuran dan frame. Perubahan langsung dipakai saat tes game dan tersimpan lokal.</p>
+  <div class="editorField"><label for="assetType">Kategori aset</label><select id="assetType"><option value="character">Karakter (spritesheet)</option><option value="background">Background arena</option><option value="audioShoot">Audio tembakan</option><option value="audioVictory">Audio victory</option><option value="jet">Skin jetpack</option></select></div>
+  <div class="row"><button class="primary" id="chooseAsset">📂 IMPOR DARI GALERI</button><button class="secondary" id="clearAsset">HAPUS KATEGORI</button></div>
+  <input id="assetFile" type="file" accept="image/png,image/jpeg,image/webp,audio/*" hidden>
+  <div class="previewBox" id="previewBox"><span>Preview aset akan tampil di sini</span></div>
+  <div class="editorGrid">
+   <div class="editorField"><label for="assetScale">Ukuran <span id="scaleValue">1.0×</span></label><input id="assetScale" type="range" min="0.25" max="3" step="0.05" value="1"></div>
+   <div class="editorField"><label for="assetSpeed">Kecepatan animasi <span id="speedValue">10 FPS</span></label><input id="assetSpeed" type="range" min="1" max="30" step="1" value="10"></div>
+   <div class="editorField"><label for="assetCols">Kolom frame</label><input id="assetCols" type="number" min="1" max="20" value="1"></div>
+   <div class="editorField"><label for="assetRows">Baris frame</label><input id="assetRows" type="number" min="1" max="20" value="1"></div>
+   <div class="editorField"><label for="assetOffsetX">Geser horizontal <span id="offsetXValue">0</span></label><input id="assetOffsetX" type="range" min="-80" max="80" step="1" value="0"></div>
+   <div class="editorField"><label for="assetOffsetY">Geser vertikal <span id="offsetYValue">0</span></label><input id="assetOffsetY" type="range" min="-80" max="80" step="1" value="0"></div>
+  </div>
+  <div class="row"><button class="primary" id="saveAsset">SIMPAN & TERAPKAN</button><button class="secondary" id="testAsset">TES DI GAME</button><button class="secondary" id="closeEditor">KEMBALI KE LOBBY</button></div>
+  <p class="note">Karakter animasi: PNG transparan satu pose bisa dipakai sebagai gambar statis. Untuk animasi karakter, impor spritesheet berisi beberapa frame berurutan; atur kolom, baris, dan FPS. Batas impor per file 2 MB agar penyimpanan lokal lebih stabil.</p>
+ </div>
+</div>
+<div id="overlay" style="display:none">
   <div class="card">
     <div class="logo">2D SIDE-SCROLLING SHOOTER</div>
     <h1>MINI<br>ARENA</h1>
-    <p>Shooter 2D: kamu (biru) melawan 5 bot merah setiap ronde. Menang ronde mendapat 1 poin. Tim pertama yang mencapai 4 poin memenangkan pertandingan.</p>
-    <div class="row"><button class="primary" id="startBtn">MULAI · MODE LANDSCAPE</button><button class="secondary" id="howBtn">KONTROL</button></div>
-    <p class="note">Wajib mode landscape sebelum bermain. PC: A/D bergerak, W/Space lompat, arahkan mouse lalu klik untuk menembak, Shift untuk jetpack. HP: joystick kiri bergerak; kanan membidik + auto-fire; tombol gambar untuk lompat, jetpack, dan granat.</p>
+    <p>Shooter 2D: kamu (biru) melawan 5 bot merah setiap ronde.</p>
+    <div class="row"><button class="primary" id="startBtn">MULAI RONDE</button><button class="secondary" id="howBtn">KONTROL</button><button class="secondary" id="resultLobbyBtn">LOBBY</button></div>
+    <p class="note">HP: joystick kiri bergerak; kanan membidik + auto-fire; tombol untuk lompat, jetpack, dan granat. PC: A/D bergerak, W/Space lompat, mouse menembak, Shift jetpack, G granat.</p>
   </div>
 </div>
 <script>
@@ -101,6 +154,11 @@ const platforms=[
 ];
 const player={x:110,y:820,vx:0,vy:0,w:28,h:48,hp:100,jet:100,face:1,onGround:false,shootCd:0,invuln:0,anim:0,flash:0};
 let bots=[],bullets=[],particles=[],pickups=[],grenades=[],explosions=[];let weapon='ak';
+const assetDefaults={character:{scale:1,fps:10,cols:1,rows:1,x:0,y:0},background:{scale:1,fps:10,cols:1,rows:1,x:0,y:0},audioShoot:{},audioVictory:{},jet:{scale:1,fps:10,cols:1,rows:1,x:0,y:0}};
+const assets={};const assetImages={};const assetAudio={};let editorPendingData=null,editorPendingType='character';
+function loadAssets(){try{const saved=JSON.parse(localStorage.getItem('miniArenaAssetsV2')||'{}');Object.assign(assets,saved)}catch(e){};for(const [type,data] of Object.entries(assets)){if(data&&data.data&&data.kind==='image'){const im=new Image();im.onload=()=>assetImages[type]=im;im.src=data.data}else if(data&&data.kind==='audio'){const a=new Audio(data.data);a.preload='auto';assetAudio[type]=a}}}
+function playAssetAudio(type){const a=assetAudio[type];if(a){try{a.currentTime=0;const p=a.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}}}
+loadAssets();
 function spawnBot(x,y){return{x,y,vx:0,vy:0,w:28,h:46,hp:60,maxHp:60,jet:100,face:-1,onGround:false,anim:Math.random()*6,shootCd:.7+Math.random(),flash:0,think:0,dead:false}}
 function beginRound(){
   Object.assign(player,{x:110,y:820,vx:0,vy:0,hp:100,jet:100,face:1,onGround:false,shootCd:0,invuln:1.2,anim:0,flash:0});
@@ -108,7 +166,7 @@ function beginRound(){
   const starts=[620,1120,1640,2200,2860];
   for(let i=0;i<5;i++)bots.push(spawnBot(starts[i],820));
   dead=false;playing=true;matchState='playing';move.x=0;move.y=0;jetHeld=false;fireHeld=false;aimHeld=false;mouse.down=false;
-  $('overlay').style.display='none';$('overlay').querySelector('h1').innerHTML='MINI<br>ARENA';
+  $('overlay').style.display='none';$('overlay').querySelector('h1').classList.remove('victoryTitle');const fx=$('overlay').querySelector('.victoryFx');if(fx)fx.style.display='none';$('overlay').querySelector('h1').innerHTML='MINI<br>ARENA';
   $('overlay').querySelector('.card p').textContent='Kalahkan 5 bot merah. Setiap ronde hanya punya satu nyawa dan bot tidak respawn.';
   $('startBtn').textContent='MULAI RONDE';updateHud();last=performance.now();
 }
@@ -121,7 +179,7 @@ function finishRound(winner){
   const overlay=$('overlay'),title=overlay.querySelector('h1'),paras=overlay.querySelectorAll('.card p');
   overlay.style.display='flex';
   if(matchOver){
-    title.innerHTML=winner==='blue'?'VICTORY!':'DEFEAT';
+    title.innerHTML=winner==='blue'?'<span class="victoryBadge">🏆</span> VICTORY!':'DEFEAT';
     paras[0].textContent=`HASIL AKHIR  ${blueWins} — ${redWins}. ${winner==='blue'?'Kamu mencapai 4 poin lebih dulu!':'Tim merah mencapai 4 poin lebih dulu.'}`;
     $('startBtn').textContent='MAIN LAGI';
   }else{
@@ -129,27 +187,34 @@ function finishRound(winner){
     paras[0].textContent=`Pemenang ronde ini: ${winner==='blue'?'BIRU (KAMU)':'MERAH (BOT)'}. Skor sekarang ${blueWins} — ${redWins}. Pertandingan berlanjut sampai salah satu tim mendapat 4 poin.`;
     $('startBtn').textContent='RONDE BERIKUTNYA';
   }
+  if(winner==='blue'){
+    title.classList.add('victoryTitle');
+    if(!title.innerHTML.includes('victoryBadge'))title.innerHTML='<span class=\"victoryBadge\">🏆</span> '+title.innerHTML;
+    let fx=overlay.querySelector('.victoryFx');if(!fx){fx=document.createElement('div');fx.className='victoryFx';title.after(fx)}fx.textContent='✨ 🎉 🏆 🎊 ✨';fx.style.display='block';playAssetAudio('audioVictory');
+  }else{title.classList.remove('victoryTitle');const fx=overlay.querySelector('.victoryFx');if(fx)fx.style.display='none'}
   paras[1].textContent='Kontrol: joystick kiri bergerak, joystick kanan membidik/menembak, tombol lompat, jetpack, dan granat. PC: A/D, W/Space, mouse, Shift, G.';
   updateHud();
 }
 
 function showToast(s){const t=$('toast');t.textContent=s;t.style.opacity=1;clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.style.opacity=0,1300)}
 function updateHud(){$('weaponName').textContent=weapon==='ak'?'AK-47':'PISTOL';$('ammo').textContent=weapon==='ak'?'AK-47 · ∞':'PISTOL · ∞';$('weaponIcon').innerHTML=weapon==='ak'?'<path d="M3 13h7l3-3h8l2 3h6v4h-7l-2 3h-5l-2-3H3z"/><path d="M14 20l-1 5h5l2-5M23 13V9h3v4"/>':'<path d="M4 12h15l4 4h5v4H16l-4-3H4z"/><path d="M15 17l-2 7h5l2-7M7 12V9h10v3"/>';$('hpText').textContent=Math.max(0,Math.ceil(player.hp))+' / 100';$('hpFill').style.width=Math.max(0,player.hp)+'%';$('jetText').textContent=Math.ceil(player.jet)+'%';$('jetFill').style.width=player.jet+'%';$('roundBadge').textContent='RONDE '+roundNumber;$('blueWins').textContent=blueWins;$('redWins').textContent=redWins;$('botsLeft').textContent=bots.filter(b=>!b.dead).length;}
-async function startGameLandscape(){
-  // A mobile session must be landscape before the match begins.
-  if(W < H){
-    try{
-      if(!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-      if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
-    }catch(err){}
-    await new Promise(r=>setTimeout(r,350));resize();
-  }
-  if(W < H){showToast('Putar HP ke posisi mendatar dulu, coo!');$('startBtn').textContent='COBA LAGI · LANDSCAPE';return;}
-  if(matchState==='menu'||matchState==='matchover'){blueWins=0;redWins=0;roundNumber=1;}else if(matchState==='roundover'){roundNumber++;}beginRound();
+function startGameLandscape(){
+  if(matchState==='menu'||matchState==='matchover'){blueWins=0;redWins=0;roundNumber=1;}else if(matchState==='roundover'){roundNumber++;}
+  $('lobbyScreen').style.display='none';$('overlay').style.display='none';$('editorScreen').style.display='none';beginRound();
 }
 $('startBtn').addEventListener('click',startGameLandscape);
+$('lobbyPlay').addEventListener('click',startGameLandscape);
+$('lobbyUpdate').addEventListener('click',openEditor);
+$('lobbyRank').addEventListener('click',()=>showToast('Mode Rank disiapkan untuk update berikutnya'));
+$('lobbyMabar').addEventListener('click',()=>showToast('Mabar online memerlukan server multiplayer'));
+$('lobbyHelp').addEventListener('click',()=>showToast('HP: joystick kiri gerak, kanan bidik/tembak. PC: A/D, Space, mouse, Shift, G.'));
+$('lobbyReset').addEventListener('click',()=>{if(confirm('Hapus semua aset kustom yang tersimpan di perangkat ini?')){localStorage.removeItem('miniArenaAssetsV2');location.reload()}});
+$('lobbyBtn').addEventListener('click',()=>{playing=false;matchState='menu';$('overlay').style.display='none';$('editorScreen').style.display='none';$('lobbyScreen').style.display='flex';move.x=move.y=0;fireHeld=false;jetHeld=false;aimHeld=false});
+$('resultLobbyBtn').addEventListener('click',()=>{$('overlay').style.display='none';$('lobbyScreen').style.display='flex';matchState='menu'});
+$('closeEditor').addEventListener('click',()=>{$('editorScreen').style.display='none';$('lobbyScreen').style.display='flex'});
+$('testAsset').addEventListener('click',()=>{saveEditorAsset(false);$('editorScreen').style.display='none';startGameLandscape()});
 $('weaponBtn').addEventListener('click',()=>{weapon=weapon==='ak'?'pistol':'ak';updateHud();showToast(weapon==='ak'?'AK-47 siap digunakan':'Pistol siap digunakan')});
-$('howBtn').addEventListener('click',()=>showToast('HP: mode landscape wajib · joystick kiri gerak · kanan bidik/tembak'));
+$('howBtn').addEventListener('click',()=>showToast('HP: joystick kiri gerak · kanan bidik/tembak · tombol lompat, jetpack, granat'));
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(playing&&player.onGround){player.vy=-470;player.onGround=false;particle(player.x+14,player.y+45,'#dbeafe',7)}$('jumpBtn').classList.add('active')});
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('jumpBtn').addEventListener(ev,()=>$('jumpBtn').classList.remove('active'));
 $('jumpBtn').addEventListener('contextmenu',e=>e.preventDefault());
@@ -201,21 +266,11 @@ function throwGrenade(){
     vx:ax*390+player.vx*.45,vy:ay*300-210,fuse:3,owner:player});
   particle(player.x+player.w/2,player.y+player.h*.35,'#d1d5db',5);
 }
-async function toggleLandscape(){
-  try{
-    if(!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
-    landscapeRequested=true;showToast('Mode landscape aktif');
-  }catch(err){
-    showToast('Putar HP ke posisi mendatar untuk mode landscape');
-  }
-  setTimeout(resize,150);
-}
 
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function collide(ent,dx,dy){ent.x+=dx;for(const p of platforms){if(rectHit(ent,p)){if(dx>0)ent.x=p.x-ent.w;else if(dx<0)ent.x=p.x+p.w;ent.vx=0}}ent.y+=dy;ent.onGround=false;for(const p of platforms){if(rectHit(ent,p)){if(dy>0){ent.y=p.y-ent.h;ent.onGround=true}else if(dy<0)ent.y=p.y+p.h;ent.vy=0}}if(ent.x<0){ent.x=0;ent.vx=0}if(ent.x+ent.w>worldW){ent.x=worldW-ent.w;ent.vx=0}}
 function particle(x,y,color,n=5){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*220,vy:(Math.random()-.8)*200,life:.25+Math.random()*.3,max:.55,color,size:2+Math.random()*3})}
-function shoot(owner,dirX,dirY){const isPlayer=owner===player;const pistol=isPlayer&&weapon==='pistol';const speed=pistol?610:720;let x=owner.x+owner.w/2+dirX*(pistol?15:25),y=owner.y+owner.h*.42+dirY*10;bullets.push({x,y,vx:dirX*speed+(owner.vx||0)*.25,vy:dirY*speed,life:1.25,owner,damage:pistol?14:20});owner.flash=.08;particle(x,y,pistol?'#fef3c7':'#ffd166',pistol?2:3)}
+function shoot(owner,dirX,dirY){const isPlayer=owner===player;if(isPlayer)playAssetAudio('audioShoot');const pistol=isPlayer&&weapon==='pistol';const speed=pistol?610:720;let x=owner.x+owner.w/2+dirX*(pistol?15:25),y=owner.y+owner.h*.42+dirY*10;bullets.push({x,y,vx:dirX*speed+(owner.vx||0)*.25,vy:dirY*speed,life:1.25,owner,damage:pistol?14:20});owner.flash=.08;particle(x,y,pistol?'#fef3c7':'#ffd166',pistol?2:3)}
 function update(dt){if(!playing||dead||matchState!=='playing')return;dt=Math.min(dt,.033);
 player.anim+=dt*(Math.abs(player.vx)>10?10:2);player.shootCd-=dt;player.invuln-=dt;player.flash-=dt;
 const left=keys.a||keys.arrowleft,right=keys.d||keys.arrowright;
@@ -281,6 +336,7 @@ camera.x=Math.max(0,Math.min(worldW-W,player.x+player.w/2-W*.48));camera.y=Math.
 updateHud()}
 function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
 function drawBackground(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#7dd3fc');g.addColorStop(.58,'#b7e7f5');g.addColorStop(1,'#e0f2fe');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+if(assetImages.background){const im=assetImages.background,meta=assets.background||assetDefaults.background;const sc=Number(meta.scale)||1;ctx.save();ctx.globalAlpha=.9;const iw=W*sc,ih=H*sc;ctx.drawImage(im,(W-iw)/2+(Number(meta.x)||0),(H-ih)/2+(Number(meta.y)||0),iw,ih);ctx.restore()}
 ctx.save();ctx.translate(-camera.x*.18,-camera.y*.12);for(let i=0;i<16;i++){let x=i*260-40;ctx.fillStyle=i%2?'#74b8bd':'#8ac7c7';ctx.beginPath();ctx.moveTo(x,690);ctx.lineTo(x+90,420+(i%3)*45);ctx.lineTo(x+220,690);ctx.fill()}ctx.restore();
 ctx.save();ctx.translate(-camera.x*.5,-camera.y*.3);for(let i=0;i<28;i++){let x=i*150;ctx.fillStyle='#ffffff70';ctx.beginPath();ctx.ellipse(x+((i*37)%90),130+(i%4)*65,32,10,0,0,Math.PI*2);ctx.ellipse(x+25+((i*37)%90),125+(i%4)*65,24,12,0,0,Math.PI*2);ctx.fill()}ctx.restore()}
 function drawWorld(){ctx.save();ctx.translate(-camera.x,-camera.y);
@@ -313,6 +369,7 @@ if(jetActive){
  ctx.fillStyle='#dc2626';ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(-10,flicker*.7,-2,flicker+8);ctx.quadraticCurveTo(1,flicker*.5,3,0);ctx.fill();
  ctx.fillStyle='#f97316';ctx.beginPath();ctx.moveTo(-2,0);ctx.quadraticCurveTo(-6,flicker*.6,0,flicker+4);ctx.quadraticCurveTo(4,flicker*.5,2,0);ctx.fill();
  ctx.fillStyle='#fde047';ctx.beginPath();ctx.moveTo(-1,0);ctx.quadraticCurveTo(-2,flicker*.4,0,flicker*.65+2);ctx.quadraticCurveTo(2,flicker*.4,1,0);ctx.fill();ctx.restore();
+ if(!isBot&&assetImages.jet){const jm=assetImages.jet,meta=assets.jet||assetDefaults.jet,sc=Number(meta.scale)||1;ctx.save();ctx.translate(-face*9,-31);ctx.drawImage(jm,-10+(Number(meta.x)||0),-8+(Number(meta.y)||0),20*sc,27*sc);ctx.restore()}
 }
 ctx.globalAlpha=.16;ctx.fillStyle='#0f172a';ctx.beginPath();ctx.ellipse(0,1,18,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
 // Animated legs stay grounded, while the upper body and weapon follow the aim.
@@ -339,8 +396,10 @@ ctx.fillStyle='#f1c7a5';ctx.beginPath();ctx.arc(0,-44,9,0,Math.PI*2);ctx.fill();
 ctx.fillStyle=isBot?'#7f1d1d':'#1e40af';ctx.beginPath();ctx.arc(0,-47,9.5,Math.PI,Math.PI*2);ctx.lineTo(10,-44);ctx.lineTo(-10,-44);ctx.fill();
 ctx.fillStyle='#0f172a';ctx.fillRect(3,-45,5,2);ctx.fillStyle='#cbd5e1';ctx.fillRect(2,-42,8,2);
 ctx.restore();
+// Optional custom animated character sprite sheet; built-in character remains as fallback.
+if(!isBot&&assetImages.character){const im=assetImages.character,meta=assets.character||assetDefaults.character,cols=Math.max(1,Number(meta.cols)||1),rows=Math.max(1,Number(meta.rows)||1),frame=Math.floor(performance.now()/1000*(Number(meta.fps)||10))%(cols*rows),fw=im.naturalWidth/cols,fh=im.naturalHeight/rows,scale=Number(meta.scale)||1,dw=c.w*2.0*scale,dh=c.h*1.55*scale;ctx.save();ctx.translate(cx+(Number(meta.x)||0),cy-26+(Number(meta.y)||0));if(face<0)ctx.scale(-1,1);ctx.drawImage(im,(frame%cols)*fw,Math.floor(frame/cols)*fh,fw,fh,-dw/2,-dh+8,dw,dh);ctx.restore();}
 
-// Aim direction is truly 360 degrees. Mirror left-facing aim, then rotate the weapon around the shoulder.
+// Aim direction is truly 360 degrees. Mirror the weapon's local vertical axis while facing left so the magazine/grip don't look upside down.
 let ax=playerAim?playerAim.x:(face||1), ay=playerAim?playerAim.y:0;
 const angle=isBot?0:Math.atan2(ay,ax);
 const shoulderX=ax<0?-5:5, shoulderY=-32;
@@ -396,9 +455,23 @@ function drawMinimap(){
  m.strokeStyle='rgba(125,211,252,.7)';m.lineWidth=1;m.strokeRect(camera.x*sx,camera.y*sy,Math.max(2,W*sx),Math.max(2,H*sy));
  m.fillStyle='#cbd5e1';m.font='bold 9px system-ui';m.fillText('MUSUH MERAH',5,mh-5);
 }
+function openEditor(){
+ $('lobbyScreen').style.display='none';$('editorScreen').style.display='flex';editorPendingType=$('assetType').value;loadEditorMeta();refreshPreview();
+}
+function loadEditorMeta(){const type=$('assetType').value,meta=Object.assign({},assetDefaults[type]||assetDefaults.character,assets[type]||{});$('assetScale').value=meta.scale||1;$('assetSpeed').value=meta.fps||10;$('assetCols').value=meta.cols||1;$('assetRows').value=meta.rows||1;$('assetOffsetX').value=meta.x||0;$('assetOffsetY').value=meta.y||0;updateEditorLabels()}
+function updateEditorLabels(){$('scaleValue').textContent=Number($('assetScale').value).toFixed(2)+'×';$('speedValue').textContent=$('assetSpeed').value+' FPS';$('offsetXValue').textContent=$('assetOffsetX').value;$('offsetYValue').textContent=$('assetOffsetY').value}
+function refreshPreview(){const type=$('assetType').value,box=$('previewBox');box.innerHTML='';const data=editorPendingType===type?editorPendingData:(assets[type]&&assets[type].data);if(data){if((assets[type]&&assets[type].kind==='audio')||type.startsWith('audio')){const a=document.createElement('audio');a.controls=true;a.src=data;box.appendChild(a)}else{const im=document.createElement('img');im.src=data;im.style.transform=`scale(${Number($('assetScale').value)||1})`;box.appendChild(im)}}else if(assetImages[type]){const im=document.createElement('img');im.src=assetImages[type].src;box.appendChild(im)}else{box.innerHTML='<span>Belum ada aset. Tekan IMPOR DARI GALERI.</span>'}}
+function saveEditorAsset(showMessage=true){const type=$('assetType').value;const meta={...(assets[type]||{}),...(assetDefaults[type]||{}),scale:Number($('assetScale').value)||1,fps:Number($('assetSpeed').value)||10,cols:Math.max(1,Math.min(20,Number($('assetCols').value)||1)),rows:Math.max(1,Math.min(20,Number($('assetRows').value)||1)),x:Number($('assetOffsetX').value)||0,y:Number($('assetOffsetY').value)||0};if(editorPendingType===type&&editorPendingData){meta.data=editorPendingData;meta.kind=type.startsWith('audio')?'audio':'image'}else if(assets[type]){meta.data=assets[type].data;meta.kind=assets[type].kind}assets[type]=meta;try{localStorage.setItem('miniArenaAssetsV2',JSON.stringify(assets));if(meta.kind==='image'){const im=new Image();im.onload=()=>assetImages[type]=im;im.src=meta.data;delete assetAudio[type]}else if(meta.kind==='audio'){assetAudio[type]=new Audio(meta.data)}if(showMessage)showToast('Aset tersimpan dan diterapkan');return true}catch(e){showToast('Gagal menyimpan: file terlalu besar. Coba gambar/audio lebih kecil.');return false}}
+$('assetType').addEventListener('change',()=>{editorPendingData=null;editorPendingType=$('assetType').value;loadEditorMeta();refreshPreview();$('assetFile').accept=$('assetType').value.startsWith('audio')?'audio/*':'image/png,image/jpeg,image/webp'});
+$('chooseAsset').addEventListener('click',()=>{$('assetFile').value='';$('assetFile').click()});
+$('assetFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const type=$('assetType').value;if(type.startsWith('audio')&&!f.type.startsWith('audio/')){showToast('Kategori ini membutuhkan file audio');return}if(!type.startsWith('audio')&&!f.type.startsWith('image/')){showToast('Pilih file gambar PNG/JPG/WebP');return}if(f.size>2*1024*1024){showToast('File lebih dari 2 MB; perkecil/optimalkan dulu supaya penyimpanan stabil');return}const reader=new FileReader();reader.onload=()=>{editorPendingType=type;editorPendingData=reader.result;refreshPreview()};reader.readAsDataURL(f)});
+for(const id of ['assetScale','assetSpeed','assetCols','assetRows','assetOffsetX','assetOffsetY'])$(id).addEventListener('input',()=>{updateEditorLabels();refreshPreview()});
+$('saveAsset').addEventListener('click',()=>saveEditorAsset(true));
+$('clearAsset').addEventListener('click',()=>{const type=$('assetType').value;delete assets[type];delete assetImages[type];delete assetAudio[type];editorPendingData=null;try{localStorage.setItem('miniArenaAssetsV2',JSON.stringify(assets))}catch(e){}refreshPreview();showToast('Aset kategori dihapus')});
+
 function render(){drawBackground();drawWorld();drawMinimap();if(!playing){ctx.fillStyle='#0f172a';ctx.font='700 14px system-ui';ctx.fillText('Tekan MULAI untuk bermain',18,H-20)}}
 function loop(t){const dt=(t-last)/1000||0;last=t;update(dt);render();requestAnimationFrame(loop)}
-requestAnimationFrame(loop);
+$('assetFile').accept='image/png,image/jpeg,image/webp';$('overlay').style.display='none';$('lobbyScreen').style.display='flex';$('hud').style.display='block';requestAnimationFrame(loop);
 })();
 </script>
 </body>

@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,6 +83,40 @@ class _ArenaGamePageState extends State<ArenaGamePage> {
         ),
       )
       ..loadFlutterAsset('assets/game/mini_arena_full_rebuild.html');
+    _configureAndroidFilePicker();
+  }
+
+
+  Future<void> _configureAndroidFilePicker() async {
+    if (!Platform.isAndroid || _controller.platform is! AndroidWebViewController) {
+      return;
+    }
+    final androidController = _controller.platform as AndroidWebViewController;
+    await androidController.setOnShowFileSelector((params) async {
+      final accepted = params.acceptTypes.join(' ').toLowerCase();
+      FileType type = FileType.any;
+      if (accepted.contains('audio')) {
+        type = FileType.audio;
+      } else if (accepted.contains('image') ||
+          accepted.contains('.png') ||
+          accepted.contains('.jpg')) {
+        type = FileType.image;
+      }
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: type,
+          allowMultiple: params.mode == FileSelectorMode.openMultiple,
+          withData: false,
+        );
+        if (result == null) return <String>[];
+        return result.files
+            .where((file) => file.path != null)
+            .map((file) => Uri.file(file.path!).toString())
+            .toList();
+      } catch (_) {
+        return <String>[];
+      }
+    });
   }
 
   @override
@@ -159,7 +196,7 @@ class _ArenaGamePageState extends State<ArenaGamePage> {
                           ),
                         const SizedBox(height: 12),
                         const Text(
-                          'MODE LANDSCAPE • OFFLINE • MINI ARENA',
+                          'OFFLINE • LOBBY • ASSET WORKSHOP',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 9,
