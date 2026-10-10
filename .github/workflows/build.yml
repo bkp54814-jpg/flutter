@@ -2,13 +2,9 @@ name: Build Mini Arena Flutter APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -20,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build split APKs (per ABI)
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -40,16 +36,28 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Repair missing Android platform wrapper if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pubspec.yaml || { echo 'ERROR: pubspec.yaml tidak ditemukan di root repository.'; exit 1; }
+          test -f lib/main.dart || { echo 'ERROR: lib/main.dart tidak ditemukan di root repository.'; exit 1; }
+
+          # Some web upload methods omit Android wrapper files. Regenerate platform
+          # scaffolding if gradlew is missing, while preserving the Flutter app source.
+          if [ ! -f android/gradlew ] || [ ! -f android/gradle/wrapper/gradle-wrapper.jar ] || [ ! -f android/gradle/wrapper/gradle-wrapper.properties ]; then
+            echo 'Android Gradle wrapper missing; regenerating Android platform files...'
+            flutter create --platforms=android --project-name mini_arena_flutter .
+          fi
+
+          test -f android/gradlew || { echo 'ERROR: android/gradlew masih tidak ditemukan setelah regenerasi.'; exit 1; }
+          test -f android/gradle/wrapper/gradle-wrapper.jar || { echo 'ERROR: gradle-wrapper.jar tidak ditemukan.'; exit 1; }
+          chmod +x android/gradlew
+
       - name: Show tool versions
         run: |
           flutter --version
           java -version
-
-      - name: Check Flutter project files
-        run: |
-          test -f pubspec.yaml || (echo 'ERROR: pubspec.yaml tidak ditemukan di root repository.' && exit 1)
-          test -f lib/main.dart || (echo 'ERROR: lib/main.dart tidak ditemukan di root repository.' && exit 1)
-          test -f android/gradlew || (echo 'ERROR: android/gradlew tidak ditemukan.' && exit 1)
 
       - name: Install dependencies
         run: flutter pub get
@@ -58,31 +66,33 @@ jobs:
         continue-on-error: true
         run: flutter analyze --no-pub
 
-      - name: Build universal release APK
-        id: build_universal
-        run: flutter build apk --release
-
-      - name: Build APKs for individual CPU architectures
+      - name: Build release APKs split by ABI
         run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK files
-        if: always() && (success() || steps.build_universal.outcome == 'success')
+      - name: Verify split APK outputs
+        run: |
+          set -euo pipefail
+          ls -lh build/app/outputs/flutter-apk/
+          test -f build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          test -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          test -f build/app/outputs/flutter-apk/app-x86_64-release.apk
+
+      - name: Upload split APKs
         uses: actions/upload-artifact@v4
         with:
-          name: mini-arena-android-apk
+          name: mini-arena-split-apks
           path: |
-            build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-x86_64-release.apk
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
 
       - name: Upload build diagnostics if failed
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-build-diagnostics
+          name: mini-arena-build-diagnostics
           path: |
             pubspec.yaml
             android/gradle/wrapper/gradle-wrapper.properties

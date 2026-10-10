@@ -2,17 +2,24 @@
 
 Proyek game Flutter 2D Mini Arena. Source code utama berada di `lib/main.dart`.
 
-## Build APK otomatis di GitHub Actions
+## Build APK otomatis (split per ABI)
 
-Workflow berada di `.github/workflows/build.yml` dan otomatis berjalan ketika ada commit/push ke branch `main` atau `master`. Workflow juga bisa dijalankan manual.
+Workflow GitHub Actions berada di `.github/workflows/build.yml`. Build berjalan otomatis saat ada push ke branch `main` atau `master`, saat pull request, dan bisa juga dijalankan manual lewat tab Actions.
 
-1. Upload/ekstrak semua isi ZIP ini ke **root repository GitHub**. Pastikan `pubspec.yaml`, folder `lib/`, folder `android/`, dan folder `.github/` terlihat langsung di halaman utama repository—jangan sampai semuanya masih berada di dalam folder tambahan.
-2. Commit perubahan ke branch `main` atau `master`.
-3. Buka tab **Actions** pada repository dan pilih workflow **Build Mini Arena Flutter APK**.
-4. Tunggu sampai status hijau/`Success`.
-5. Buka run yang selesai, lalu unduh artifact **mini-arena-android-apk**. Di dalamnya tersedia APK universal `app-release.apk` dan APK khusus arsitektur jika berhasil dibuat.
+1. Upload/commit **seluruh isi ZIP ini** ke root repository GitHub. Di halaman utama repository harus terlihat `pubspec.yaml`, `lib/`, `android/`, dan `.github/`. Jangan upload ZIP sebagai satu file dan jangan simpan semua isi di folder tambahan.
+2. Commit ke branch `main` atau `master`.
+3. Buka tab **Actions**, pilih **Build Mini Arena Flutter APK**, lalu buka proses build terbaru.
+4. Jika statusnya hijau, unduh artifact **`mini-arena-split-apks`**.
 
-Jika workflow tidak muncul, buka **Settings → Actions → General** dan pastikan Actions diizinkan untuk repository tersebut. Jika build gagal, buka run di tab Actions, pilih job **Build Android APK**, lalu baca langkah pertama yang merah.
+Workflow akan mencoba membuat ulang file platform Android jika `android/gradlew` atau file wrapper-nya hilang, seperti yang dapat terjadi saat mengunggah file satu per satu melalui browser. Lalu workflow menjalankan hanya `flutter build apk --release --split-per-abi` supaya tidak membuat APK universal tambahan.
+
+## Pilih APK yang cocok
+
+- `app-arm64-v8a-release.apk` — pilihan yang biasanya cocok untuk HP Android modern.
+- `app-armeabi-v7a-release.apk` — perangkat ARM 32-bit yang lebih lama.
+- `app-x86_64-release.apk` — perangkat/emulator Android berbasis x86_64.
+
+APK split lebih kecil karena setiap file hanya membawa native library untuk satu arsitektur. Pasang APK yang cocok dengan arsitektur perangkat; jangan perlu memasang ketiganya.
 
 ## Build manual
 
@@ -21,7 +28,7 @@ Dengan Flutter SDK terpasang:
 ```bash
 flutter pub get
 flutter analyze
-flutter build apk --release
+flutter build apk --release --split-per-abi
 ```
 
-Catatan: APK yang dibuat Actions memakai konfigurasi signing debug bawaan project untuk memudahkan pengujian. Untuk rilis publik/Play Store, buat konfigurasi signing release sendiri.
+Catatan: build Actions menggunakan signing debug bawaan untuk memudahkan pengujian. Untuk rilis publik/Play Store, konfigurasi signing release sendiri.
