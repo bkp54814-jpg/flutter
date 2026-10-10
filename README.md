@@ -57,3 +57,10 @@ flutter build apk --release --split-per-abi
 ## Build verification status
 
 The HTML JavaScript was syntax-checked with Node.js and the ZIP structure was validated. Flutter is not installed in the generation environment, so a release APK was not built here; use the included GitHub Actions workflow to verify the Android build.
+
+
+## Sprite sheet slicer add-on
+- Workshop now includes a frame-grid preview and individual PNG frame downloads.
+- Added `weapon` category for asset preview/slicing organization; custom weapon sprites are not wired into the gameplay renderer yet.
+- `Sprite_Frame_Planner.xlsx` is a starter spreadsheet for frame names, directions, coordinates, sizes, FPS, and output names. Adjust the sample rows to match your actual source image.
+- Browser may ask permission for multiple downloads. For reliable left/right animation, use a mirrored frame set or horizontal flip.
