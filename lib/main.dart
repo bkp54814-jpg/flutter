@@ -33,7 +33,58 @@ class _ArenaHomeState extends State<ArenaHome> with SingleTickerProviderStateMix
   @override Widget build(BuildContext context){return Scaffold(body:LayoutBuilder(builder:(context,box){return Stack(fit:StackFit.expand,children:[CustomPaint(painter:ArenaPainter(screen:screen,load:load,player:p,bots:bots,shots:shots,platforms:platforms,camera:cam,kills:kills,hp:hp,time:time)),if(screen=='loading')_loading(),if(screen=='lobby')_lobby(),if(screen=='game')_controls(box.maxWidth,box.maxHeight),if(screen=='result')_result()]);}));}
   Widget _loading()=>Container(color:bg.withOpacity(.90),child:Center(child:SizedBox(width:300,child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('NOVA STUDIOS  /  PRESENTS',style:TextStyle(color:cyan,fontWeight:FontWeight.bold,letterSpacing:3,fontSize:11)),const SizedBox(height:18),const Text('MINI ARENA',style:TextStyle(fontSize:38,fontWeight:FontWeight.w900,letterSpacing:1)),const SizedBox(height:7),const Text('Memuat arena tempur...',style:TextStyle(color:Colors.white60)),const SizedBox(height:18),ClipRRect(borderRadius:BorderRadius.circular(8),child:LinearProgressIndicator(value:load,minHeight:5,color:cyan,backgroundColor:Colors.white12)),const SizedBox(height:8),Text('${(load*100).round()}%',style:const TextStyle(color:cyan,fontSize:11))]))));
   Widget _lobby()=>Stack(children:[Positioned(left:28,top:22,child:const Text('NOVA  /  COMBAT DIVISION',style:TextStyle(color:cyan,fontWeight:FontWeight.w900,letterSpacing:2,fontSize:12))),Positioned(left:30,top:75,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('MINI',style:TextStyle(fontSize:48,fontWeight:FontWeight.w900,height:.9)),const Text('ARENA',style:TextStyle(fontSize:58,fontWeight:FontWeight.w900,height:1.0,color:cyan)),const SizedBox(height:15),const Text('TACTICAL SIDE-SCROLLER',style:TextStyle(letterSpacing:2,color:Colors.white70,fontSize:11)),const SizedBox(height:18),Container(width:245,padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white.withOpacity(.06),border:Border.all(color:Colors.white12),borderRadius:BorderRadius.circular(12)),child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('MISSION 01  •  SOLO',style:TextStyle(color:cyan,fontWeight:FontWeight.bold,fontSize:11)),SizedBox(height:7),Text('Habisi 5 bot merah. Bertahan hidup dan kuasai arena.',style:TextStyle(height:1.4,color:Colors.white70,fontSize:12))]))])),Positioned(right:30,top:48,child:Container(width:170,height:180,decoration:BoxDecoration(color:const Color(0xFF122943),borderRadius:BorderRadius.circular(18),border:Border.all(color:cyan.withOpacity(.35))),child:CustomPaint(painter:LobbySoldierPainter()))),Positioned(right:28,bottom:24,child:ElevatedButton.icon(onPressed:_start,icon:const Icon(Icons.play_arrow_rounded),label:const Padding(padding:EdgeInsets.symmetric(vertical:15,horizontal:14),child:Text('MULAI MISI',style:TextStyle(fontWeight:FontWeight.w900,letterSpacing:1))),style:ElevatedButton.styleFrom(backgroundColor:cyan,foregroundColor:bg,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(13))))),const Positioned(left:30,bottom:30,child:Text('v1.0  •  OFFLINE COMBAT',style:TextStyle(color:Colors.white38,fontSize:10,letterSpacing:1.5)))]);
-  Widget _controls(double w,double h)=>Stack(children:[Positioned(left:18,top:12,child:_hud()),Positioned(left:18,bottom:15,child:_stick(false)),Positioned(right:110,bottom:18,child:_stick(true)),Positioned(right:18,bottom:18,child:Column(mainAxisSize:MainAxisSize.min,children:[_roundButton(Icons.arrow_upward,'LOMPAT',()=>setState(()=>jumping=true),()=>setState(()=>jumping=false),Colors.green),const SizedBox(height:8),_roundButton(Icons.local_fire_department,'JET',()=>setState(()=>jet=true),()=>setState(()=>jet=false),const Color(0xFF168BC4)),const SizedBox(height:8),GestureDetector(onTapDown:(_)=>setState(()=>firing=true),onTapUp:(_)=>setState(()=>firing=false),onTapCancel:()=>setState(()=>firing=false),child:Container(width:65,height:65,decoration:BoxDecoration(color:red,borderRadius:BorderRadius.circular(50),border:Border.all(color:Colors.white70,width:2),boxShadow:[BoxShadow(color:red.withOpacity(.25),blurRadius:18)]),child:const Icon(Icons.gps_fixed,size:28,color:Colors.white))) ])),Positioned(right:18,top:12,child:TextButton.icon(onPressed:()=>setState(()=>screen='lobby'),icon:const Icon(Icons.pause_circle_outline),label:const Text('PAUSE'))]);
+  Widget _controls(double w, double h) => Stack(
+        children: [
+          Positioned(left: 18, top: 12, child: _hud()),
+          Positioned(left: 18, bottom: 15, child: _stick(false)),
+          Positioned(right: 110, bottom: 18, child: _stick(true)),
+          Positioned(
+            right: 18,
+            bottom: 18,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _roundButton(Icons.arrow_upward, 'LOMPAT',
+                    () => setState(() => jumping = true),
+                    () => setState(() => jumping = false), Colors.green),
+                const SizedBox(height: 8),
+                _roundButton(Icons.local_fire_department, 'JET',
+                    () => setState(() => jet = true),
+                    () => setState(() => jet = false), const Color(0xFF168BC4)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTapDown: (_) => setState(() => firing = true),
+                  onTapUp: (_) => setState(() => firing = false),
+                  onTapCancel: () => setState(() => firing = false),
+                  child: Container(
+                    width: 65,
+                    height: 65,
+                    decoration: BoxDecoration(
+                      color: red,
+                      borderRadius: BorderRadius.circular(50),
+                      border: Border.all(color: Colors.white70, width: 2),
+                      boxShadow: [
+                        BoxShadow(color: red.withOpacity(.25), blurRadius: 18),
+                      ],
+                    ),
+                    child: const Icon(Icons.gps_fixed,
+                        size: 28, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 18,
+            top: 12,
+            child: TextButton.icon(
+              onPressed: () => setState(() => screen = 'lobby'),
+              icon: const Icon(Icons.pause_circle_outline),
+              label: const Text('PAUSE'),
+            ),
+          ),
+        ],
+      );
   Widget _hud()=>Container(padding:const EdgeInsets.symmetric(horizontal:13,vertical:9),decoration:BoxDecoration(color:bg.withOpacity(.82),borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white12)),child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.shield,color:cyan,size:17),const SizedBox(width:6),Text('HP ${hp.round()}%',style:const TextStyle(fontWeight:FontWeight.w900)),const SizedBox(width:16),Text('BOT ${bots.where((b)=>!b.dead).length}',style:const TextStyle(color:red,fontWeight:FontWeight.w900)),const SizedBox(width:16),Text('ELIMINASI $kills/5',style:const TextStyle(color:cyan,fontWeight:FontWeight.w900))]));
   Widget _stick(bool isAim)=>GestureDetector(onPanUpdate:(d){setState((){final dx=(d.localPosition.dx-48)/35,dy=(d.localPosition.dy-48)/35;if(isAim){final a=V(dx,dy).norm();aimX=a.x;aimY=a.y;firing=true;}else{move=(dx).clamp(-1,1).toDouble();}});},onPanEnd:(_){setState((){if(isAim)firing=false;else move=0;});},child:Container(width:96,height:96,decoration:BoxDecoration(shape:BoxShape.circle,color:Colors.white.withOpacity(.08),border:Border.all(color:Colors.white38,width:2)),child:Center(child:Container(width:43,height:43,decoration:BoxDecoration(shape:BoxShape.circle,color:isAim?const Color(0xFFFFD19B):Colors.white.withOpacity(.82),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.3),blurRadius:10)]),child:Icon(isAim?Icons.my_location:Icons.open_with,color:bg,size:20)))));
   Widget _roundButton(IconData icon,String label,VoidCallback down,VoidCallback up,Color color)=>GestureDetector(onTapDown:(_)=>down(),onTapUp:(_)=>up(),onTapCancel:up,child:Container(width:58,height:58,decoration:BoxDecoration(color:color.withOpacity(.85),shape:BoxShape.circle,border:Border.all(color:Colors.white60,width:2)),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(icon,size:23),Text(label,style:const TextStyle(fontSize:8,fontWeight:FontWeight.w900))])));
@@ -44,7 +95,47 @@ class ArenaPainter extends CustomPainter { final String screen; final double loa
  @override void paint(Canvas c,Size s){final bgp=Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF0A1B33),Color(0xFF214766),Color(0xFF6AA5AD)]).createShader(Offset.zero& s);c.drawRect(Offset.zero&s,bgp);final star=Paint()..color=Colors.white.withOpacity(.35);for(int i=0;i<40;i++){final x=((i*137.0)%s.width).toDouble(),y=((i*43.0)% (s.height*.6)).toDouble();c.drawCircle(Offset(x,y),i%4==0?1.5:.7,star);}for(int i=0;i<7;i++){final x=i*190-(camera*.18%190);final path=Path()..moveTo(x,s.height*.78)..lineTo(x+90,s.height*.35+(i%3)*22)..lineTo(x+190,s.height*.78)..close();c.drawPath(path,Paint()..color=const Color(0xFF183B53).withOpacity(.7));}
  if(screen=='game'||screen=='result'){c.save();c.translate(-camera,0);for(final r in platforms){c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(4)),Paint()..color=const Color(0xFF172D42));c.drawRect(Rect.fromLTWH(r.left,r.top,r.width,4),Paint()..color=cyan.withOpacity(.8));for(double x=r.left+12;x<r.right-6;x+=28){c.drawRect(Rect.fromLTWH(x,r.top+8,14,2),Paint()..color=Colors.white12);}}for(final b in bots){if(!b.dead)_fighter(c,b,true);} _fighter(c,player,false);for(final sh in shots){c.drawLine(Offset(sh.x,sh.y),Offset(sh.x-sh.vx*.018,sh.y-sh.vy*.018),Paint()..color=(sh.enemy?red:const Color(0xFFFFE8A3))..strokeWidth=3..strokeCap=StrokeCap.round);}c.restore();}
  }
- void _fighter(Canvas c,Fighter f,bool bot){final x=f.x,y=f.y, color=bot?red:blue;final shadow=Paint()..color=Colors.black.withOpacity(.25);c.drawOval(Rect.fromLTWH(x-3,y+40,35,7),shadow);final body=Paint()..color=color;c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x+4,y+13,20,22),const Radius.circular(5)),body);final skin=Paint()..color=const Color(0xFFEAC3A1);c.drawCircle(Offset(x+14,y+8),8,skin);c.drawArc(Rect.fromLTWH(x+6,y,16,11),math.pi,math.pi, false,Paint()..color=(bot?const Color(0xFF7F1D1D):const Color(0xFF173D9B))..style=PaintingStyle.stroke..strokeWidth=4);final leg=Paint()..color=(bot?const Color(0xFF7F1D1D):const Color(0xFF173D9B))..strokeWidth=5..strokeCap=StrokeCap.round;c.drawLine(Offset(x+9,y+33),Offset(x+7+math.sin(f.anim)*4,y+44),leg);c.drawLine(Offset(x+19,y+33),Offset(x+21-math.sin(f.anim)*4,y+44),leg);c.drawLine(Offset(x+17,y+20),Offset(x+31,y+20),Paint()..color=skin..strokeWidth=5..strokeCap=StrokeCap.round);c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x+26,y+16,18,6),const Radius.circular(2)),Paint()..color=const Color(0xFF202D39));if(bot){c.drawRect(Rect.fromLTWH(x,y-9,28,3),Paint()..color=Colors.black54);c.drawRect(Rect.fromLTWH(x,y-9,28*(f.hp/100).clamp(0,1).toDouble(),3),Paint()..color=red);}}
+  void _fighter(Canvas c, Fighter f, bool bot) {
+    final double x = f.x;
+    final double y = f.y;
+    final Color bodyColor = bot ? red : blue;
+    final Color skinColor = const Color(0xFFEAC3A1);
+    final Color outfitColor = bot ? const Color(0xFF7F1D1D) : const Color(0xFF173D9B);
+    final shadow = Paint()..color = Colors.black.withOpacity(.25);
+    c.drawOval(Rect.fromLTWH(x - 3, y + 40, 35, 7), shadow);
+    final body = Paint()..color = bodyColor;
+    c.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(x + 4, y + 13, 20, 22), const Radius.circular(5)),
+      body,
+    );
+    c.drawCircle(Offset(x + 14, y + 8), 8, Paint()..color = skinColor);
+    c.drawArc(
+      Rect.fromLTWH(x + 6, y, 16, 11),
+      math.pi,
+      math.pi,
+      false,
+      Paint()..color = outfitColor..style = PaintingStyle.stroke..strokeWidth = 4,
+    );
+    final leg = Paint()..color = outfitColor..strokeWidth = 5..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(x + 9, y + 33), Offset(x + 7 + math.sin(f.anim) * 4, y + 44), leg);
+    c.drawLine(Offset(x + 19, y + 33), Offset(x + 21 - math.sin(f.anim) * 4, y + 44), leg);
+    c.drawLine(
+      Offset(x + 17, y + 20),
+      Offset(x + 31, y + 20),
+      Paint()..color = skinColor..strokeWidth = 5..strokeCap = StrokeCap.round,
+    );
+    c.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(x + 26, y + 16, 18, 6), const Radius.circular(2)),
+      Paint()..color = const Color(0xFF202D39),
+    );
+    if (bot) {
+      c.drawRect(Rect.fromLTWH(x, y - 9, 28, 3), Paint()..color = Colors.black54);
+      c.drawRect(
+        Rect.fromLTWH(x, y - 9, 28 * (f.hp / 100).clamp(0, 1).toDouble(), 3),
+        Paint()..color = red,
+      );
+    }
+  }
  @override bool shouldRepaint(covariant ArenaPainter old)=>true; }
 class LobbySoldierPainter extends CustomPainter { @override void paint(Canvas c,Size s){final p=Paint()..color=const Color(0xFF2D86FF);c.drawOval(Rect.fromLTWH(28,142,116,14),Paint()..color=Colors.black26);c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(55,62,62,66),const Radius.circular(13)),p);c.drawCircle(const Offset(86,48),25,Paint()..color=const Color(0xFFEAC3A1));c.drawArc(const Rect.fromLTWH(61,23,50,42),math.pi,math.pi, false,Paint()..color=const Color(0xFF102039)..style=PaintingStyle.stroke..strokeWidth=10);c.drawLine(const Offset(64,95),const Offset(42,134),Paint()..color=const Color(0xFF173D9B)..strokeWidth=13..strokeCap=StrokeCap.round);c.drawLine(const Offset(104,95),const Offset(128,134),Paint()..color=const Color(0xFF173D9B)..strokeWidth=13..strokeCap=StrokeCap.round);c.drawLine(const Offset(106,80),const Offset(145,69),Paint()..color=const Color(0xFFEAC3A1)..strokeWidth=10..strokeCap=StrokeCap.round);c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(117,64,40,9),const Radius.circular(3)),Paint()..color=const Color(0xFF17202B));}
  @override bool shouldRepaint(covariant CustomPainter old)=>false; }
