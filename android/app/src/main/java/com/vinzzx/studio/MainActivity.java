@@ -1,4 +1,4 @@
-package com.nullx.evo;
+package com.vinzzx.studio;
 
 import io.flutter.embedding.android.FlutterActivity;
 

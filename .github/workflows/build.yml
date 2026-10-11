@@ -1,4 +1,4 @@
-name: Build Mini Arena Flutter APK
+name: Build VINZZX STUDIO APK
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
           # scaffolding if gradlew is missing, while preserving the Flutter app source.
           if [ ! -f android/gradlew ] || [ ! -f android/gradle/wrapper/gradle-wrapper.jar ] || [ ! -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             echo 'Android Gradle wrapper missing; regenerating Android platform files...'
-            flutter create --platforms=android --project-name mini_arena_flutter .
+            flutter create --platforms=android --project-name vinzzx_studio .
           fi
 
           test -f android/gradlew || { echo 'ERROR: android/gradlew masih tidak ditemukan setelah regenerasi.'; exit 1; }
@@ -80,7 +80,7 @@ jobs:
       - name: Upload split APKs
         uses: actions/upload-artifact@v4
         with:
-          name: mini-arena-split-apks
+          name: vinzzx-studio-split-apks
           path: |
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
@@ -92,7 +92,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mini-arena-build-diagnostics
+          name: vinzzx-studio-build-diagnostics
           path: |
             pubspec.yaml
             android/gradle/wrapper/gradle-wrapper.properties

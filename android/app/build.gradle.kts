@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.nullx.evo"
+    namespace = "com.vinzzx.studio"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "com.nullx.evo"
+        applicationId = "com.vinzzx.studio"
         minSdk = 23
         targetSdk = 36
 
