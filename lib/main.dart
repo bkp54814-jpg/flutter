@@ -40,7 +40,7 @@ extension AssetRoleLabel on AssetRole {
 
 class SpriteAsset {
   SpriteAsset({required this.name, required this.bytes, required this.image, this.role = AssetRole.character,
-    this.rows = 4, this.columns = 4, this.fps = 8, this.zoom = 2, this.script = defaultScript});
+    this.rows = 1, this.columns = 1, this.fps = 8, this.zoom = 2, this.script = defaultScript});
   final String name;
   final Uint8List bytes;
   final ui.Image image;
@@ -49,12 +49,19 @@ class SpriteAsset {
   double zoom;
   String script;
   int cropX = 0, cropY = 0, frameWidthOverride = 0, frameHeightOverride = 0;
+  final Set<int> deletedFrames = <int>{};
+  int get totalFrames => rows * columns;
+  int get frameCount => math.max(0, totalFrames - deletedFrames.length);
+  int sourceFrameAt(int sequenceIndex) {
+    final usable = List<int>.generate(totalFrames, (i) => i).where((i) => !deletedFrames.contains(i)).toList();
+    if (usable.isEmpty) return 0;
+    return usable[sequenceIndex.clamp(0, usable.length - 1).toInt()];
+  }
   int get frameWidth => math.max(1, frameWidthOverride > 0 ? frameWidthOverride : image.width ~/ columns);
   int get frameHeight => math.max(1, frameHeightOverride > 0 ? frameHeightOverride : image.height ~/ rows);
-  int get frameCount => rows * columns;
   Map<String, dynamic> toJson({bool includeImage = true}) => {
     'name': name, 'role': role.name, 'rows': rows, 'columns': columns, 'fps': fps,
-    'frameWidth': frameWidth, 'frameHeight': frameHeight, 'cropX': cropX, 'cropY': cropY, 'behaviorScript': script,
+    'frameWidth': frameWidth, 'frameHeight': frameHeight, 'cropX': cropX, 'cropY': cropY, 'deletedFrames': deletedFrames.toList()..sort(), 'behaviorScript': script,
     if (includeImage) 'pngBase64': base64Encode(bytes),
   };
   static const defaultScript = '''// VINZZX 2D behavior script (template)
@@ -106,7 +113,7 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
     gameTime += dt;
     final characterAssets = assets.where((asset) => asset.role == AssetRole.character).toList();
     final a = characterAssets.isNotEmpty ? characterAssets.first : activeAsset;
-    if (a != null) frame = (gameTime * a.fps).floor() % a.frameCount;
+    if (a != null && a.frameCount > 0) frame = a.sourceFrameAt((gameTime * a.fps).floor() % a.frameCount);
     setState(() { playerX += playerVX * dt; playerX = playerX.clamp(20, 560).toDouble(); });
   }
 
@@ -118,8 +125,27 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
       final codec = await ui.instantiateImageCodec(bytes);
       final image = (await codec.getNextFrame()).image;
       final asset = SpriteAsset(name: file.name, bytes: bytes, image: image);
-      setState(() { assets.add(asset); selectedAsset = assets.length - 1; tab = 1; frame = 0; rowsCtrl.text = '4'; colsCtrl.text = '4'; fpsCtrl.text = '8'; scriptCtrl.text = asset.script; status = 'Import ${file.name} • ${image.width}×${image.height}'; });
+      setState(() { assets.add(asset); selectedAsset = -1; tab = 1; frame = 0; status = 'Import berhasil: ${file.name}. Pilih aset secara manual untuk mengedit.'; });
     } catch (e) { _message('Gagal import gambar: $e'); }
+  }
+
+  void previewSheetSettings() {
+    final a = activeAsset;
+    if (a == null) return;
+    final r = int.tryParse(rowsCtrl.text.trim());
+    final c = int.tryParse(colsCtrl.text.trim());
+    final f = int.tryParse(fpsCtrl.text.trim());
+    if (r == null || c == null || r < 1 || c < 1 || r > 64 || c > 64) return;
+    if (a.image.width ~/ c < 1 || a.image.height ~/ r < 1) return;
+    setState(() {
+      if (a.rows != r || a.columns != c) {
+        a.rows = r;
+        a.columns = c;
+        a.deletedFrames.clear();
+        frame = 0;
+      }
+      if (f != null && f >= 1 && f <= 60) a.fps = f;
+    });
   }
 
   void applySheetSettings() {
@@ -127,7 +153,7 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
     final r = int.tryParse(rowsCtrl.text.trim()), c = int.tryParse(colsCtrl.text.trim()), f = int.tryParse(fpsCtrl.text.trim());
     if (r == null || c == null || f == null || r < 1 || c < 1 || r > 64 || c > 64 || f < 1 || f > 60) { _message('Baris/kolom 1–64 dan FPS 1–60.'); return; }
     if (a.image.width ~/ c < 1 || a.image.height ~/ r < 1) { _message('Ukuran frame tidak valid.'); return; }
-    setState(() { a.rows = r; a.columns = c; a.fps = f; a.script = scriptCtrl.text; frame %= a.frameCount; status = 'Sprite sheet: ${c}×$r • ${a.frameWidth}×${a.frameHeight}px • $f FPS'; });
+    setState(() { a.rows = r; a.columns = c; a.fps = f; a.script = scriptCtrl.text; frame = a.totalFrames > 0 ? frame.clamp(0, a.totalFrames - 1).toInt() : 0; status = 'Sprite sheet: ${c}×$r • ${a.frameWidth}×${a.frameHeight}px • $f FPS'; });
   }
 
   void addObject(AssetRole role) {
@@ -135,7 +161,7 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
   }
 
   Future<void> saveProject() async {
-    final project = <String, dynamic>{'engine': 'VINZZX STUDIO', 'version': '0.2.0', 'canvas': {'width': 640, 'height': 360},
+    final project = <String, dynamic>{'engine': 'VINZZX STUDIO', 'version': '0.6.0', 'canvas': {'width': 640, 'height': 360},
       'assets': assets.map((a) => a.toJson()).toList(), 'objects': objects.map((o) => o.toJson()).toList()};
     final data = const JsonEncoder.withIndent('  ').convert(project);
     await Clipboard.setData(ClipboardData(text: data));
@@ -227,7 +253,7 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
   void _chooseRole() { showModalBottomSheet(context: context, backgroundColor: panel2, builder: (ctx) => SafeArea(child: Wrap(children: [const ListTile(title: Text('Tambah objek', style: TextStyle(fontWeight: FontWeight.w900))), ...AssetRole.values.map((r) => ListTile(leading: Icon(_roleIcon(r), color: accent), title: Text(r.label), onTap: () { Navigator.pop(ctx); addObject(r); }))]))); }
 
   Widget _spriteTab() => Row(children: [
-    SizedBox(width: 155, child: _sidePanel('ASSET LIBRARY', Column(children: [Expanded(child: assets.isEmpty ? const Center(child: Text('Belum ada PNG\nTekan IMPORT PNG', textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 11))) : ListView.builder(itemCount: assets.length, itemBuilder: (_, i) => ListTile(dense: true, selected: selectedAsset == i, selectedTileColor: const Color(0xFF1D3553), leading: SizedBox(width: 30, height: 30, child: Image.memory(assets[i].bytes, fit: BoxFit.contain)), title: Text(assets[i].name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9)), subtitle: Text(assets[i].role.label, style: const TextStyle(fontSize: 8, color: muted)), onTap: () => setState(() { selectedAsset = i; frame = 0; rowsCtrl.text = '${assets[i].rows}'; colsCtrl.text = '${assets[i].columns}'; fpsCtrl.text = '${assets[i].fps}'; scriptCtrl.text = assets[i].script; }))),), FilledButton.icon(onPressed: importPng, icon: const Icon(Icons.add_photo_alternate, size: 16), label: const Text('Import dari galeri', style: TextStyle(fontSize: 9))) ]))),
+    SizedBox(width: 155, child: _sidePanel('ASSET LIBRARY', Column(children: [Expanded(child: assets.isEmpty ? const Center(child: Text('Belum ada PNG\nTekan IMPORT PNG', textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 11))) : ListView.builder(itemCount: assets.length, itemBuilder: (_, i) => ListTile(dense: true, selected: selectedAsset == i, selectedTileColor: const Color(0xFF1D3553), leading: SizedBox(width: 30, height: 30, child: Image.memory(assets[i].bytes, fit: BoxFit.contain)), title: Text(assets[i].name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9)), subtitle: Text(assets[i].role.label, style: const TextStyle(fontSize: 8, color: muted)), onTap: () => setState(() { selectedAsset = i; frame = 0; rowsCtrl.text = '${assets[i].rows}'; colsCtrl.text = '${assets[i].columns}'; fpsCtrl.text = '${assets[i].fps}'; scriptCtrl.text = assets[i].script; }))),), Row(children: [Expanded(child: FilledButton.icon(onPressed: importPng, icon: const Icon(Icons.add_photo_alternate, size: 16), label: const Text('Import PNG', style: TextStyle(fontSize: 9)))), IconButton(tooltip: 'Hapus aset terpilih', onPressed: selectedAsset < 0 || selectedAsset >= assets.length ? null : () => setState(() { final removedIndex = selectedAsset; assets.removeAt(removedIndex); selectedAsset = -1; for (final o in objects) { if (o.assetIndex == removedIndex) o.assetIndex = -1; else if (o.assetIndex > removedIndex) o.assetIndex--; } status = 'Aset dihapus'; }), icon: const Icon(Icons.delete_outline, size: 18))]) ]))),
     Expanded(child: activeAsset == null ? Center(child: FilledButton.icon(onPressed: importPng, icon: const Icon(Icons.image), label: const Text('Pilih PNG transparan dari galeri'))) : _spriteWorkspace(activeAsset!)),
     SizedBox(width: 205, child: _sidePanel('FRAME SETTINGS', _frameSettings(activeAsset))),
   ]);
@@ -281,24 +307,30 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
     Container(
       height: 100, margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [const Text('FRAME STRIP', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)), const Spacer(), Text('Frame ${frame + 1}/${a.frameCount}', style: const TextStyle(fontSize: 9, color: muted))]),
+        Row(children: [const Text('FRAME STRIP', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)), const Spacer(), Text('Frame ${frame + 1}/${a.totalFrames}', style: const TextStyle(fontSize: 9, color: muted))]),
         const SizedBox(height: 6),
         Expanded(child: ListView.builder(
           scrollDirection: Axis.horizontal, itemCount: a.frameCount,
-          itemBuilder: (_, i) => GestureDetector(
-            onTap: () => setState(() => frame = i),
-            child: Container(
-              width: 58, margin: const EdgeInsets.only(right: 6), padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(color: frame == i ? const Color(0xFF1D3553) : panel, border: Border.all(color: frame == i ? accent : const Color(0xFF29374B)), borderRadius: BorderRadius.circular(6)),
-              child: Column(children: [Expanded(child: CustomPaint(size: Size.infinite, painter: SingleFramePainter(a, i))), Text('${i + 1}', style: const TextStyle(fontSize: 8))]),
-            ),
-          ),
-        )),
+          itemBuilder: (_, i) {
+            final sourceIndex = a.sourceFrameAt(i);
+            return GestureDetector(
+              onTap: () => setState(() => frame = sourceIndex),
+              child: Container(
+                width: 58, margin: const EdgeInsets.only(right: 6), padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: frame == sourceIndex ? const Color(0xFF1D3553) : panel, border: Border.all(color: frame == sourceIndex ? accent : const Color(0xFF29374B)), borderRadius: BorderRadius.circular(6)),
+                child: Column(children: [
+                  Expanded(child: CustomPaint(size: Size.infinite, painter: SingleFramePainter(a, sourceIndex))),
+                  Text('${sourceIndex + 1}', style: const TextStyle(fontSize: 8)),
+                ]),
+              ),
+            );
+          },
+        )), 
       ]),
     ),
   ]);
 
-  Widget _frameSettings(SpriteAsset? a) { if (a == null) return const Text('Import PNG terlebih dahulu', style: TextStyle(color: muted, fontSize: 10)); return ListView(children: [Text(a.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 8), DropdownButtonFormField<AssetRole>(value: a.role, isExpanded: true, decoration: const InputDecoration(labelText: 'Gambar ini sebagai', border: OutlineInputBorder(), isDense: true), items: AssetRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label, style: const TextStyle(fontSize: 10)))).toList(), onChanged: (v) => setState(() { if (v != null) a.role = v; })), const SizedBox(height: 10), Row(children: [Expanded(child: _smallTextField('Baris / Rows', rowsCtrl, onChanged: (_) => applySheetSettings())), const SizedBox(width: 6), Expanded(child: _smallTextField('Kolom / Cols', colsCtrl, onChanged: (_) => applySheetSettings()))]), const SizedBox(height: 7), _smallTextField('FPS (1–60)', fpsCtrl, onChanged: (_) => applySheetSettings()), const SizedBox(height: 8), Text('Frame: ${a.frameWidth} × ${a.frameHeight} px', style: const TextStyle(fontSize: 10, color: mint, fontWeight: FontWeight.w800)), Text('Total: ${a.frameCount} frame', style: const TextStyle(fontSize: 9, color: muted)), const SizedBox(height: 8), const Text('Zoom sheet', style: TextStyle(fontSize: 9, color: muted)), Slider(value: a.zoom, min: .5, max: 4, divisions: 14, onChanged: (v) => setState(() => a.zoom = v)), FilledButton.icon(onPressed: applySheetSettings, icon: const Icon(Icons.content_cut, size: 15), label: const Text('Potong / Apply', style: TextStyle(fontSize: 10))), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () { setState(() { scriptCtrl.text = a.script; tab = 3; }); }, icon: const Icon(Icons.code, size: 15), label: const Text('Edit behavior code', style: TextStyle(fontSize: 9))), const SizedBox(height: 8), const Text('Grid langsung berubah saat Rows/Cols diganti. Seret garis oranye untuk menggeser titik awal; seret garis grid untuk mengubah lebar/tinggi frame. Pastikan grid tidak melewati batas PNG.', style: TextStyle(fontSize: 9, color: muted, height: 1.4))]); }
+  Widget _frameSettings(SpriteAsset? a) { if (a == null) return const Text('Import PNG terlebih dahulu', style: TextStyle(color: muted, fontSize: 10)); return ListView(children: [Text(a.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 8), DropdownButtonFormField<AssetRole>(value: a.role, isExpanded: true, decoration: const InputDecoration(labelText: 'Gambar ini sebagai', border: OutlineInputBorder(), isDense: true), items: AssetRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label, style: const TextStyle(fontSize: 10)))).toList(), onChanged: (v) => setState(() { if (v != null) a.role = v; })), const SizedBox(height: 10), Row(children: [Expanded(child: _smallTextField('Baris / Rows', rowsCtrl, onChanged: (_) => previewSheetSettings())), const SizedBox(width: 6), Expanded(child: _smallTextField('Kolom / Cols', colsCtrl, onChanged: (_) => previewSheetSettings()))]), const SizedBox(height: 7), _smallTextField('FPS (1–60)', fpsCtrl, onChanged: (_) => previewSheetSettings()), const SizedBox(height: 8), Text('Frame: ${a.frameWidth} × ${a.frameHeight} px', style: const TextStyle(fontSize: 10, color: mint, fontWeight: FontWeight.w800)), Text('Total: ${a.frameCount} frame', style: const TextStyle(fontSize: 9, color: muted)), const SizedBox(height: 8), const Text('Zoom sheet', style: TextStyle(fontSize: 9, color: muted)), Slider(value: a.zoom, min: .5, max: 4, divisions: 14, onChanged: (v) => setState(() => a.zoom = v)), FilledButton.icon(onPressed: applySheetSettings, icon: const Icon(Icons.content_cut, size: 15), label: const Text('Terapkan grid', style: TextStyle(fontSize: 10))), const SizedBox(height: 6), OutlinedButton.icon(onPressed: a.frameCount <= 1 || a.deletedFrames.contains(frame) ? null : () { setState(() { final deleted = frame; a.deletedFrames.add(deleted); frame = a.sourceFrameAt(0); status = 'Frame ${deleted + 1} dihapus dari urutan animasi'; }); }, icon: const Icon(Icons.delete_outline, size: 15), label: const Text('Hapus frame terpilih', style: TextStyle(fontSize: 10))), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () { setState(() { scriptCtrl.text = a.script; tab = 3; }); }, icon: const Icon(Icons.code, size: 15), label: const Text('Edit behavior code', style: TextStyle(fontSize: 9))), const SizedBox(height: 8), const Text('Grid langsung berubah saat Rows/Cols diganti. Seret garis oranye untuk menggeser titik awal; seret garis grid untuk mengubah lebar/tinggi frame. Pastikan grid tidak melewati batas PNG.', style: TextStyle(fontSize: 9, color: muted, height: 1.4))]); }
   Widget _smallTextField(String label, TextEditingController ctrl, {ValueChanged<String>? onChanged}) => TextField(controller: ctrl, onChanged: onChanged, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.all(9)), style: const TextStyle(fontSize: 11));
 
   Widget _previewTab() => Column(children: [
@@ -372,15 +404,31 @@ class SingleFramePainter extends CustomPainter { SingleFramePainter(this.asset,t
 
 class PreviewPainter extends CustomPainter {
   PreviewPainter({required this.assets,required this.objects,required this.frame,required this.playerX,required this.health,required this.time}); final List<SpriteAsset> assets; final List<SceneObject> objects; final int frame,health; final double playerX,time;
-  @override void paint(Canvas canvas,Size size){ final sx=size.width/640,sy=size.height/360; canvas.drawRect(Offset.zero&size,Paint()..color=const Color(0xFF14283E)); final sky=Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF12223A),Color(0xFF263E50)]).createShader(Offset.zero&size); canvas.drawRect(Offset.zero&size,sky); for(int i=0;i<8;i++){ final x=((i*100-time*9)%760)*sx; canvas.drawCircle(Offset(x, (50+(i%3)*25)*sy), (15+(i%4)*4)*sx,Paint()..color=Colors.white.withOpacity(.035)); }
-    final ground=Rect.fromLTWH(0,300*sy,size.width,60*sy); canvas.drawRect(ground,Paint()..color=const Color(0xFF26394A)); canvas.drawRect(Rect.fromLTWH(0,300*sy,size.width,3*sy),Paint()..color=mint);
-    for(final o in objects.where((e)=>e.role==AssetRole.platform&&e.name!='Ground')) canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(o.x*sx,o.y*sy,o.w*sx,o.h*sy),const Radius.circular(4)),Paint()..color=const Color(0xFF62768A));
-    final player=assets.indexWhere((a)=>a.role==AssetRole.character); if(player>=0){final a=assets[player]; final src=_frameRect(a,frame%a.frameCount); final dst=Rect.fromLTWH(playerX*sx,205*sy,48*sx,65*sy); canvas.drawImageRect(a.image,src,dst,Paint()..filterQuality=FilterQuality.medium);}else{canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(playerX*sx,218*sy,38*sx,52*sy),const Radius.circular(7)),Paint()..color=accent); canvas.drawCircle(Offset((playerX+19)*sx,226*sy),7*sx,Paint()..color=const Color(0xFFFFD7B0));}
-    final enemyIndex=assets.indexWhere((a)=>a.role==AssetRole.enemy); if(enemyIndex>=0){final a=assets[enemyIndex];canvas.drawImageRect(a.image,_frameRect(a,frame%a.frameCount),Rect.fromLTWH(440*sx,218*sy,40*sx,52*sy),Paint()..filterQuality=FilterQuality.medium);}else{canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(440*sx,225*sy,35*sx,45*sy),const Radius.circular(5)),Paint()..color=const Color(0xFFF87171));}
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(12*sx,12*sy,150*sx,18*sy),const Radius.circular(5)),Paint()..color=Colors.black.withOpacity(.5)); canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(16*sx,16*sy,math.max(0,health)*1.35*sx,10*sy),const Radius.circular(3)),Paint()..color=health>30?mint:const Color(0xFFF87171)); _drawText(canvas,'HP $health',Offset(16*sx,34*sy),10,Colors.white); _drawText(canvas,'VINZZX TEST ARENA',Offset(size.width-140*sx,15*sy),10,Colors.white);
+  @override void paint(Canvas canvas,Size size){
+    final sx=size.width/640, sy=size.height/360;
+    canvas.drawRect(Offset.zero&size, Paint()..color=const Color(0xFF080D17));
+    if (objects.isEmpty) {
+      _drawText(canvas, 'SCENE KOSONG • TAMBAHKAN OBJECT DI SCENE EDITOR', Offset(18, size.height/2-6), 12, muted);
+      return;
+    }
+    for (final o in objects) {
+      final rect = Rect.fromLTWH(o.x*sx, o.y*sy, o.w*sx, o.h*sy);
+      final a = o.assetIndex >= 0 && o.assetIndex < assets.length ? assets[o.assetIndex] : null;
+      if (a != null) {
+        final src = _frameRect(a, a.frameCount > 0 ? a.sourceFrameAt((time*a.fps).floor() % a.frameCount) : 0);
+        canvas.drawImageRect(a.image, src, rect, Paint()..filterQuality=FilterQuality.medium);
+      } else {
+        final color = o.role == AssetRole.health ? const Color(0xFFF472B6) :
+          o.role == AssetRole.enemy ? const Color(0xFFF87171) :
+          o.role == AssetRole.platform ? const Color(0xFF62768A) : accent;
+        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color=color.withOpacity(.28));
+        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color=color..style=PaintingStyle.stroke..strokeWidth=1.5);
+        _drawText(canvas, o.name, Offset(rect.left, rect.top-12), 9, Colors.white);
+      }
+    }
   }
   @override bool shouldRepaint(covariant PreviewPainter old)=>true;
 }
-Rect _frameRect(SpriteAsset a,int index){final i=index.clamp(0,a.frameCount-1);final col=i%a.columns,row=i~/a.columns;return Rect.fromLTWH((a.cropX+col*a.frameWidth).toDouble(),(a.cropY+row*a.frameHeight).toDouble(),a.frameWidth.toDouble(),a.frameHeight.toDouble());}
+Rect _frameRect(SpriteAsset a,int index){final i=index.clamp(0,a.totalFrames-1);final col=i%a.columns,row=i~/a.columns;return Rect.fromLTWH((a.cropX+col*a.frameWidth).toDouble(),(a.cropY+row*a.frameHeight).toDouble(),a.frameWidth.toDouble(),a.frameHeight.toDouble());}
 void _checker(Canvas canvas,Size size){canvas.drawRect(Offset.zero&size,Paint()..color=const Color(0xFF111B2A)); final p=Paint()..color=const Color(0xFF1B293B); const s=12.0;for(double y=0;y<size.height;y+=s){for(double x=0;x<size.width;x+=s){if(((x/s).floor()+(y/s).floor()).isEven)canvas.drawRect(Rect.fromLTWH(x,y,s,s),p);}}}
 void _drawText(Canvas canvas,String text,Offset offset,double size,Color color){final tp=TextPainter(text:TextSpan(text:text,style:TextStyle(fontSize:size,color:color,fontWeight:FontWeight.w600)),textDirection:TextDirection.ltr,maxLines:1,ellipsis:'…')..layout(maxWidth:180);tp.paint(canvas,offset);}

@@ -1,7 +1,7 @@
 name: vinzzx_studio
 description: VINZZX STUDIO - mobile-first 2D game engine editor.
 publish_to: 'none'
-version: 0.5.0+5
+version: 0.6.0+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
