@@ -1,25 +1,37 @@
-# VINZZX STUDIO — Mobile 2D Game Engine
+# VINZZX STUDIO Mobile Engine 0.2
 
-This repository uses the original uploaded project's Android wrapper and GitHub Actions split-per-ABI build workflow. The previous Mini Arena game UI/gameplay was replaced with a new Flutter-based 2D scene-editor prototype.
+Editor game 2D untuk Android dengan fokus pada workflow mobile.
 
-## Current prototype
-- Dark mobile-first editor UI.
-- Scene canvas with grid.
-- Starter scene nodes: Player, platforms, enemy, spawn point.
-- Add object menu.
-- Select nodes from hierarchy and tap/drag on the canvas.
-- Inspector fields for X/Y/width/height.
-- Delete selected object.
-- Play/Stop preview state.
-- Save scene JSON by copying it to clipboard.
+## Fitur versi 0.2
+- Import PNG dari galeri Android, termasuk PNG dengan transparansi.
+- Sprite sheet cutter dengan pengaturan baris dan kolom (contoh 4×4 = 16 frame).
+- Preview grid pemotongan, pilih frame dengan mengetuk sheet, dan strip thumbnail semua frame.
+- Atur FPS 1–60, zoom tampilan sheet, serta ukuran frame dihitung otomatis dari ukuran gambar dan grid.
+- Assign role asset: karakter/player, musuh, health, background, platform, projectile, efek, UI, atau lainnya.
+- Scene editor dengan hierarchy, tambah/hapus objek, posisi dan ukuran objek, serta assignment sprite ke objek.
+- Game preview sederhana untuk mengetes sprite animasi, gerak horizontal dengan drag, dan HP/damage dengan tap.
+- Behavior script editor untuk menulis dan menyimpan template kode per asset.
+- Save Project menyalin JSON project ke clipboard. Data PNG dimasukkan sebagai Base64 sehingga aset ikut berada di JSON.
+- GitHub Actions membangun APK release terpisah per ABI (armeabi-v7a, arm64-v8a, x86_64).
 
-## Build APK with GitHub Actions
-1. Upload the contents of this repository to the GitHub repository root.
-2. Push to `main` or `master`, or manually run the workflow from the Actions tab.
-3. Download the `vinzzx-studio-split-apks` artifact.
-4. Install the APK matching the device ABI; most modern Android phones use `arm64-v8a`.
+## Cara build APK dari HP
+1. Upload isi ZIP ini ke root repository GitHub (jangan upload ZIP sebagai satu file).
+2. Buka tab **Actions** → **Build VINZZX STUDIO APK** → **Run workflow**.
+3. Setelah workflow hijau, unduh artifact `vinzzx-studio-split-apks`.
+4. Ekstrak artifact dan instal `app-arm64-v8a-release.apk` untuk kebanyakan HP Android modern 64-bit. Jika tidak cocok, gunakan APK ABI lain yang sesuai perangkat.
 
-The workflow builds release APKs with `flutter build apk --release --split-per-abi`.
+## Cara memakai editor
+1. Tekan **IMPORT PNG**, lalu pilih PNG transparan dari galeri.
+2. Buka **SPRITES**. Isi Rows dan Cols, misalnya 4 dan 4, atur FPS, lalu tekan **Potong / Apply**.
+3. Ketuk kotak frame di sheet atau pilih frame dari strip bawah untuk memeriksa potongan.
+4. Atur **Gambar ini sebagai**, misalnya Karakter / Player atau Nyawa / Health.
+5. Di **SCENE**, tambah objek dan pilih asset pada Inspector.
+6. Tekan **TEST GAME** untuk membuka preview; geser area game untuk menggerakkan player dan tap untuk mengetes pengurangan HP. Tekan Reset untuk mengulang.
+7. Gunakan **SCRIPT** untuk menulis behavior, lalu Apply script agar tersimpan ke asset. Save Project menyalin JSON lengkap ke clipboard.
 
-## Important status
-This is **version 0.1 editor prototype**, not yet a complete game engine. The Play button currently toggles preview mode; it does not yet simulate gameplay. Flame is included as the planned runtime foundation but the current editor canvas is drawn using Flutter CustomPainter. Next milestones: persistent project files, runtime entity/component system, physics/collision, sprite importer, player controller, weapons, then multiplayer.
+## Batasan yang perlu diketahui
+- Ini adalah engine/editor mobile tahap awal, bukan pengganti penuh Unity/Godot. Preview saat ini adalah test arena sederhana untuk memeriksa sprite, animasi, posisi, dan HP.
+- Editor kode saat ini menyimpan teks behavior ke project, tetapi **belum mengeksekusi Dart bebas**. Sistem runtime script/physics/gameplay penuh perlu dikembangkan sebagai tahap berikutnya.
+- Grid cutter membagi sprite sheet secara merata; sheet yang punya margin, spacing, atau frame tidak seragam perlu disiapkan/crop lebih dulu.
+- Project disalin sebagai JSON ke clipboard. Untuk project dengan PNG besar, JSON dapat sangat besar.
+- Build harus diverifikasi lewat GitHub Actions karena build Flutter belum dijalankan di lingkungan pembuat ZIP.
