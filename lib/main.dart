@@ -48,12 +48,13 @@ class SpriteAsset {
   int rows, columns, fps;
   double zoom;
   String script;
-  int get frameWidth => math.max(1, image.width ~/ columns);
-  int get frameHeight => math.max(1, image.height ~/ rows);
+  int cropX = 0, cropY = 0, frameWidthOverride = 0, frameHeightOverride = 0;
+  int get frameWidth => math.max(1, frameWidthOverride > 0 ? frameWidthOverride : image.width ~/ columns);
+  int get frameHeight => math.max(1, frameHeightOverride > 0 ? frameHeightOverride : image.height ~/ rows);
   int get frameCount => rows * columns;
   Map<String, dynamic> toJson({bool includeImage = true}) => {
     'name': name, 'role': role.name, 'rows': rows, 'columns': columns, 'fps': fps,
-    'frameWidth': frameWidth, 'frameHeight': frameHeight, 'behaviorScript': script,
+    'frameWidth': frameWidth, 'frameHeight': frameHeight, 'cropX': cropX, 'cropY': cropY, 'behaviorScript': script,
     if (includeImage) 'pngBase64': base64Encode(bytes),
   };
   static const defaultScript = '''// VINZZX 2D behavior script (template)
@@ -79,12 +80,10 @@ class StudioHome extends StatefulWidget {
 class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateMixin {
   final picker = ImagePicker();
   final List<SpriteAsset> assets = [];
-  final List<SceneObject> objects = [
-    SceneObject(name: 'Player', role: AssetRole.character, x: 100, y: 150, w: 48, h: 64),
-    SceneObject(name: 'Enemy_01', role: AssetRole.enemy, x: 370, y: 155, w: 42, h: 54),
-    SceneObject(name: 'Ground', role: AssetRole.platform, x: 30, y: 290, w: 570, h: 22),
-  ];
+  final List<SceneObject> objects = []; // Project baru dimulai dengan scene kosong.
   int tab = 0, selectedAsset = -1, selectedObject = 0, frame = 0;
+  String _dragAxis = '';
+  Offset _lastDragPoint = Offset.zero;
   bool playing = false, showGrid = true;
   String status = 'Siap • Import PNG untuk mulai';
   late final AnimationController ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1))..addListener(_tick);
@@ -246,12 +245,34 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
           scrollDirection: Axis.horizontal,
           child: SingleChildScrollView(child: GestureDetector(
             onTapDown: (d) {
-              final fw = a.frameWidth.toDouble() * a.zoom;
-              final fh = a.frameHeight.toDouble() * a.zoom;
-              final col = (d.localPosition.dx / fw).floor().clamp(0, a.columns - 1).toInt();
-              final row = (d.localPosition.dy / fh).floor().clamp(0, a.rows - 1).toInt();
+              final px = d.localPosition.dx / a.zoom - a.cropX;
+              final py = d.localPosition.dy / a.zoom - a.cropY;
+              final col = (px / a.frameWidth).floor().clamp(0, a.columns - 1).toInt();
+              final row = (py / a.frameHeight).floor().clamp(0, a.rows - 1).toInt();
               setState(() => frame = row * a.columns + col);
             },
+            onPanStart: (d) {
+              final px = d.localPosition.dx / a.zoom, py = d.localPosition.dy / a.zoom;
+              final nearLeft = (px - a.cropX).abs() < 12;
+              final nearTop = (py - a.cropY).abs() < 12;
+              final nearVertical = (px - (a.cropX + a.columns * a.frameWidth)).abs() < 12 || ((px-a.cropX)/a.frameWidth - ((px-a.cropX)/a.frameWidth).round()).abs() < 0.15;
+              final nearHorizontal = (py - (a.cropY + a.rows * a.frameHeight)).abs() < 12 || ((py-a.cropY)/a.frameHeight - ((py-a.cropY)/a.frameHeight).round()).abs() < 0.15;
+              _dragAxis = nearLeft ? 'x' : nearTop ? 'y' : nearVertical ? 'w' : nearHorizontal ? 'h' : '';
+              _lastDragPoint = d.localPosition;
+            },
+            onPanUpdate: (d) {
+              if (_dragAxis.isEmpty) return;
+              final dx = ((d.localPosition.dx - _lastDragPoint.dx) / a.zoom).round();
+              final dy = ((d.localPosition.dy - _lastDragPoint.dy) / a.zoom).round();
+              setState(() {
+                if (_dragAxis == 'x') a.cropX = (a.cropX + dx).clamp(0, math.max(0, a.image.width - a.frameWidth * a.columns)).toInt();
+                if (_dragAxis == 'y') a.cropY = (a.cropY + dy).clamp(0, math.max(0, a.image.height - a.frameHeight * a.rows)).toInt();
+                if (_dragAxis == 'w') a.frameWidthOverride = (a.frameWidth + dx).clamp(1, math.max(1, (a.image.width-a.cropX) ~/ a.columns)).toInt();
+                if (_dragAxis == 'h') a.frameHeightOverride = (a.frameHeight + dy).clamp(1, math.max(1, (a.image.height-a.cropY) ~/ a.rows)).toInt();
+              });
+              _lastDragPoint = d.localPosition;
+            },
+            onPanEnd: (_) { _dragAxis = ''; },
             child: CustomPaint(painter: SpriteSheetPainter(a, frame), size: Size(a.image.width * a.zoom, a.image.height * a.zoom)),
           )),
         ))),
@@ -277,8 +298,8 @@ class _StudioHomeState extends State<StudioHome> with SingleTickerProviderStateM
     ),
   ]);
 
-  Widget _frameSettings(SpriteAsset? a) { if (a == null) return const Text('Import PNG terlebih dahulu', style: TextStyle(color: muted, fontSize: 10)); return ListView(children: [Text(a.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 8), DropdownButtonFormField<AssetRole>(value: a.role, isExpanded: true, decoration: const InputDecoration(labelText: 'Gambar ini sebagai', border: OutlineInputBorder(), isDense: true), items: AssetRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label, style: const TextStyle(fontSize: 10)))).toList(), onChanged: (v) => setState(() { if (v != null) a.role = v; })), const SizedBox(height: 10), Row(children: [Expanded(child: _smallTextField('Baris / Rows', rowsCtrl)), const SizedBox(width: 6), Expanded(child: _smallTextField('Kolom / Cols', colsCtrl))]), const SizedBox(height: 7), _smallTextField('FPS (1–60)', fpsCtrl), const SizedBox(height: 8), Text('Frame: ${a.frameWidth} × ${a.frameHeight} px', style: const TextStyle(fontSize: 10, color: mint, fontWeight: FontWeight.w800)), Text('Total: ${a.frameCount} frame', style: const TextStyle(fontSize: 9, color: muted)), const SizedBox(height: 8), const Text('Zoom sheet', style: TextStyle(fontSize: 9, color: muted)), Slider(value: a.zoom, min: .5, max: 4, divisions: 14, onChanged: (v) => setState(() => a.zoom = v)), FilledButton.icon(onPressed: applySheetSettings, icon: const Icon(Icons.content_cut, size: 15), label: const Text('Potong / Apply', style: TextStyle(fontSize: 10))), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () { setState(() { scriptCtrl.text = a.script; tab = 3; }); }, icon: const Icon(Icons.code, size: 15), label: const Text('Edit behavior code', style: TextStyle(fontSize: 9))), const SizedBox(height: 8), const Text('Contoh: sheet 4×4 = 16 frame. Tiap frame dipotong dari ukuran PNG secara rata.', style: TextStyle(fontSize: 9, color: muted, height: 1.4))]); }
-  Widget _smallTextField(String label, TextEditingController ctrl) => TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.all(9)), style: const TextStyle(fontSize: 11));
+  Widget _frameSettings(SpriteAsset? a) { if (a == null) return const Text('Import PNG terlebih dahulu', style: TextStyle(color: muted, fontSize: 10)); return ListView(children: [Text(a.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 8), DropdownButtonFormField<AssetRole>(value: a.role, isExpanded: true, decoration: const InputDecoration(labelText: 'Gambar ini sebagai', border: OutlineInputBorder(), isDense: true), items: AssetRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label, style: const TextStyle(fontSize: 10)))).toList(), onChanged: (v) => setState(() { if (v != null) a.role = v; })), const SizedBox(height: 10), Row(children: [Expanded(child: _smallTextField('Baris / Rows', rowsCtrl, onChanged: (_) => applySheetSettings())), const SizedBox(width: 6), Expanded(child: _smallTextField('Kolom / Cols', colsCtrl, onChanged: (_) => applySheetSettings()))]), const SizedBox(height: 7), _smallTextField('FPS (1–60)', fpsCtrl, onChanged: (_) => applySheetSettings()), const SizedBox(height: 8), Text('Frame: ${a.frameWidth} × ${a.frameHeight} px', style: const TextStyle(fontSize: 10, color: mint, fontWeight: FontWeight.w800)), Text('Total: ${a.frameCount} frame', style: const TextStyle(fontSize: 9, color: muted)), const SizedBox(height: 8), const Text('Zoom sheet', style: TextStyle(fontSize: 9, color: muted)), Slider(value: a.zoom, min: .5, max: 4, divisions: 14, onChanged: (v) => setState(() => a.zoom = v)), FilledButton.icon(onPressed: applySheetSettings, icon: const Icon(Icons.content_cut, size: 15), label: const Text('Potong / Apply', style: TextStyle(fontSize: 10))), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () { setState(() { scriptCtrl.text = a.script; tab = 3; }); }, icon: const Icon(Icons.code, size: 15), label: const Text('Edit behavior code', style: TextStyle(fontSize: 9))), const SizedBox(height: 8), const Text('Grid langsung berubah saat Rows/Cols diganti. Seret garis oranye untuk menggeser titik awal; seret garis grid untuk mengubah lebar/tinggi frame. Pastikan grid tidak melewati batas PNG.', style: TextStyle(fontSize: 9, color: muted, height: 1.4))]); }
+  Widget _smallTextField(String label, TextEditingController ctrl, {ValueChanged<String>? onChanged}) => TextField(controller: ctrl, onChanged: onChanged, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.all(9)), style: const TextStyle(fontSize: 11));
 
   Widget _previewTab() => Column(children: [
     Expanded(child: Padding(
@@ -330,7 +351,21 @@ class ScenePainter extends CustomPainter {
 
 class SpriteSheetPainter extends CustomPainter {
   SpriteSheetPainter(this.asset,this.selected); final SpriteAsset asset; final int selected;
-  @override void paint(Canvas canvas, Size size) { _checker(canvas,size); final rect=Offset.zero & size; canvas.drawImageRect(asset.image,Rect.fromLTWH(0,0,asset.image.width.toDouble(),asset.image.height.toDouble()),rect,Paint()..filterQuality=FilterQuality.none); final fw=size.width/asset.columns,fh=size.height/asset.rows; final p=Paint()..color=accent..style=PaintingStyle.stroke..strokeWidth=1; for(int c=0;c<=asset.columns;c++) canvas.drawLine(Offset(c*fw,0),Offset(c*fw,size.height),p); for(int r=0;r<=asset.rows;r++) canvas.drawLine(Offset(0,r*fh),Offset(size.width,r*fh),p); final row=selected~/asset.columns,col=selected%asset.columns; canvas.drawRect(Rect.fromLTWH(col*fw,row*fh,fw,fh),Paint()..color=mint.withOpacity(.25)); canvas.drawRect(Rect.fromLTWH(col*fw,row*fh,fw,fh),Paint()..color=mint..style=PaintingStyle.stroke..strokeWidth=3); }
+  @override void paint(Canvas canvas, Size size) {
+    _checker(canvas,size);
+    canvas.drawImageRect(asset.image, Rect.fromLTWH(0,0,asset.image.width.toDouble(),asset.image.height.toDouble()), Offset.zero & size, Paint()..filterQuality=FilterQuality.none);
+    final fw=asset.frameWidth*asset.zoom, fh=asset.frameHeight*asset.zoom, ox=asset.cropX*asset.zoom, oy=asset.cropY*asset.zoom;
+    final p=Paint()..color=accent..style=PaintingStyle.stroke..strokeWidth=1;
+    for(int c=0;c<=asset.columns;c++) { final x=ox+c*fw; canvas.drawLine(Offset(x,oy),Offset(x,oy+asset.rows*fh),p); }
+    for(int r=0;r<=asset.rows;r++) { final y=oy+r*fh; canvas.drawLine(Offset(ox,y),Offset(ox+asset.columns*fw,y),p); }
+    final row=selected~/asset.columns,col=selected%asset.columns;
+    final rect=Rect.fromLTWH(ox+col*fw,oy+row*fh,fw,fh);
+    canvas.drawRect(rect,Paint()..color=mint.withOpacity(.25));
+    canvas.drawRect(rect,Paint()..color=mint..style=PaintingStyle.stroke..strokeWidth=3);
+    final handle=Paint()..color=Colors.orange..strokeWidth=3;
+    canvas.drawLine(Offset(ox,oy),Offset(ox,oy+asset.rows*fh),handle);
+    canvas.drawLine(Offset(ox,oy),Offset(ox+asset.columns*fw,oy),handle);
+  }
   @override bool shouldRepaint(covariant SpriteSheetPainter old)=>true;
 }
 class SingleFramePainter extends CustomPainter { SingleFramePainter(this.asset,this.index); final SpriteAsset asset; final int index; @override void paint(Canvas canvas,Size size){_checker(canvas,size); final src=_frameRect(asset,index); final fit=math.min(size.width/src.width,size.height/src.height); final dst=Rect.fromCenter(center: Offset(size.width/2,size.height/2),width:src.width*fit,height:src.height*fit); canvas.drawImageRect(asset.image,src,dst,Paint()..filterQuality=FilterQuality.none);} @override bool shouldRepaint(covariant SingleFramePainter old)=>true; }
@@ -346,6 +381,6 @@ class PreviewPainter extends CustomPainter {
   }
   @override bool shouldRepaint(covariant PreviewPainter old)=>true;
 }
-Rect _frameRect(SpriteAsset a,int index){final i=index.clamp(0,a.frameCount-1);final col=i%a.columns,row=i~/a.columns;return Rect.fromLTWH((col*a.frameWidth).toDouble(),(row*a.frameHeight).toDouble(),a.frameWidth.toDouble(),a.frameHeight.toDouble());}
+Rect _frameRect(SpriteAsset a,int index){final i=index.clamp(0,a.frameCount-1);final col=i%a.columns,row=i~/a.columns;return Rect.fromLTWH((a.cropX+col*a.frameWidth).toDouble(),(a.cropY+row*a.frameHeight).toDouble(),a.frameWidth.toDouble(),a.frameHeight.toDouble());}
 void _checker(Canvas canvas,Size size){canvas.drawRect(Offset.zero&size,Paint()..color=const Color(0xFF111B2A)); final p=Paint()..color=const Color(0xFF1B293B); const s=12.0;for(double y=0;y<size.height;y+=s){for(double x=0;x<size.width;x+=s){if(((x/s).floor()+(y/s).floor()).isEven)canvas.drawRect(Rect.fromLTWH(x,y,s,s),p);}}}
 void _drawText(Canvas canvas,String text,Offset offset,double size,Color color){final tp=TextPainter(text:TextSpan(text:text,style:TextStyle(fontSize:size,color:color,fontWeight:FontWeight.w600)),textDirection:TextDirection.ltr,maxLines:1,ellipsis:'…')..layout(maxWidth:180);tp.paint(canvas,offset);}
